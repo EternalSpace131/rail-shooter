@@ -1,9 +1,18 @@
-//
-// Created by wangs on 2025/10/12.
-//
-#include <iostream>
+#include <QApplication>
+#include <QWidget>
+int main(int argc, char *argv[]) {
 
-int main() {
-    std::cout << "Project Ready" << std::endl;
-    return 0;
+    QApplication app(argc, argv);
+
+
+    QWidget window;
+
+
+    window.setWindowTitle("Qt窗口创建成功!");
+    window.resize(400, 300);
+
+
+    window.show();
+
+    return QApplication::exec();
 }

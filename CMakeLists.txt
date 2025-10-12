@@ -6,6 +6,11 @@ project(RailShooterGame)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
+
+find_package(Qt6 COMPONENTS Core Gui Widgets Multimedia REQUIRED)
 
 
 
@@ -22,3 +27,5 @@ include_directories(src)
 
 # 根据找到的所有源文件，创建最终的可执行程序
 add_executable(RailShooterGame ${SOURCES})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Multimedia)
