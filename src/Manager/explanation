@@ -1,0 +1,10 @@
+ (可选，但推荐) 存放各种“管理器”
+
+Managers/
+    ├── AssetManager.h     # 资源管理器，负责加载图片、声音
+    ├── AssetManager.cpp
+    ├── CollisionManager.h   # 碰撞管理器，负责检测碰撞
+    └── CollisionManager.cpp
+
+     可能还有别的
+     不一定按这个实现，有需要自行发挥补充

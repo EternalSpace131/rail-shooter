@@ -1,0 +1,42 @@
+# For C++, CMake, and Qt Projects
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Build directories
+build/
+cmake-build-*/
+.cmake/
+
+# Qt files
+*.pro.user
+*.qbs.user
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+
+# JetBrains (CLion) specific files
+.idea/
+
+# Log files
+*.log
+
+# Temp files
+*~
