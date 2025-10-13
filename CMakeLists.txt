@@ -24,8 +24,10 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 # 也不需要再修改cmake了，当你加头文件时
 include_directories(src)
 
+# 收集资源文件（.qrc）
+file(GLOB_RECURSE RESOURCES "*.qrc")
 
 # 根据找到的所有源文件，创建最终的可执行程序
-add_executable(RailShooterGame ${SOURCES})
+add_executable(RailShooterGame ${SOURCES} ${RESOURCES})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Multimedia)
