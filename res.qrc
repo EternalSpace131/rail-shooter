@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>assets/images/button.png</file>
+        <file>assets/images/mainGameScene_bgc.png</file>
+    </qresource>
+</RCC>
