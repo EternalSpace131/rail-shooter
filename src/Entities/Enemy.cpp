@@ -3,6 +3,8 @@
 //
 #include"Enemy.h"
 
+#include <GameLogic/GameMap.h>
+
 Enemy::Enemy(qreal x, qreal y, qreal width, qreal height, GameMap *map, int deltaTime, qreal speed, int hp)
     :Entity(x, y, width, height, map, deltaTime),m_hp(hp){
     m_speed = speed;
@@ -12,9 +14,13 @@ Enemy::Enemy(qreal x, qreal y, qreal width, qreal height, GameMap *map, int delt
 void Enemy::tick() {
     move();
     //抵线处理
-    //todo
+    if(getPosition().y()+m_height/2.0 >= m_gameMapPtr->goalLineY()) {
+        m_isAlive = false;//抵线后消失
+    }
     //触碰边界处理
-    //todo
+    if(!m_gameMapPtr->bounds().intersects(getBoundingBox())) {
+        m_isAlive = false;
+    }
 }
 
 void Enemy::draw(QPainter *painter) {

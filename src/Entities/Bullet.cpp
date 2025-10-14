@@ -3,6 +3,8 @@
 //
 #include "Bullet.h"
 
+#include <GameLogic/GameMap.h>
+
 Bullet::Bullet(qreal x, qreal y, qreal width, qreal height, GameMap *map, int deltaTime, qreal speed, const QPointF &dir, int damage)
     :Entity(x, y, width, height, map,deltaTime),m_damage(damage){
     m_speed = speed;
@@ -12,7 +14,10 @@ Bullet::Bullet(qreal x, qreal y, qreal width, qreal height, GameMap *map, int de
 void Bullet::tick() {
     move();
     //处理边界情况
-    //todo
+    if(!m_gameMapPtr->bounds().intersects(getBoundingBox())) {
+        m_isAlive = false;
+    }
+
 }
 void Bullet::draw(QPainter *painter) {
     if(!painter) {
