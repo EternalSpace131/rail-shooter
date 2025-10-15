@@ -7,7 +7,6 @@
 
 #include <Entities\Entity.h>
 #include<vector>
-#include<algorithm>
 #include<memory>
 
 class Player;
@@ -35,7 +34,7 @@ public:
     // —— 统一绘制 ——
     void drawAll(QPainter* painter);
 
-    GameMap* map() const;
+    [[nodiscard]]GameMap* map() const;
 
 private:
     // —— 小工具：条件删除 ——
