@@ -4,7 +4,7 @@
 #include "Entity.h"
 
 //
-// Created by Gemini on 2025/10/12.
+// Created by Wangs on 2025/10/12.
 //
 
 #include "Entity.h"
