@@ -17,6 +17,10 @@ public:
   void moveLeft(){ m_direction=QPointF(-1,0); }
   void moveRight(){ m_direction=QPointF(1,0); }
   void stop(){ m_direction=QPointF(0,0); }
+  void setHorizontalDirection(qreal xDir) {
+      // Player::tick() 会处理Y轴，我们只设置X轴方向
+      m_direction.setX(xDir);
+  }
 protected:
   //todo
 };
