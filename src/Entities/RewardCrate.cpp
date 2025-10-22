@@ -22,5 +22,9 @@ void RewardCrate::onKilled(EntityManager *mgr) {
         mgr->grantReward(m_reward);
     }
 }
+void RewardCrate::onLeak(EntityManager *) {}
+
+
+
 
 
