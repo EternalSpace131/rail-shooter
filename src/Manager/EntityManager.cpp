@@ -52,6 +52,9 @@ void EntityManager::tickAll() {
         for (auto& e : enemies) if (e->isAlive()) {
             if (b->getBoundingBox().intersects(e->getBoundingBox())) {
                 e->takeDamage(b->damage()); // 伤害结算
+                if(!e->isAlive()) {
+                    e->onKilled(this);//让具体敌人在死亡时执行自定义行为（比如奖励）
+                }
                 b->kill(); // 命中即销毁该子弹（防止穿透）
                 break; // 一颗子弹只命中一个敌人
             }
