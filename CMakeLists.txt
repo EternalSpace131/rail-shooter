@@ -29,6 +29,6 @@ file(GLOB_RECURSE RESOURCES "*.qrc")
 
 # 根据找到的所有源文件，创建最终的可执行程序
 add_executable(RailShooterGame ${SOURCES} ${RESOURCES}
-        src/Entities/gameworlditem.h)
+        )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Multimedia)
