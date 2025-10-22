@@ -11,6 +11,16 @@
 EntityManager::EntityManager(GameMap* map) : m_map(map) {}
 EntityManager::~EntityManager() = default;
 
+void EntityManager::setOnReward(std::function<void(int)> cb) {
+    m_onReward=std::move(cb);
+}
+
+void EntityManager::grantReward(int amount) {
+    if(m_onReward) {
+        m_onReward(amount);
+    }
+}
+
 Player *EntityManager::addPlayer(std::unique_ptr<Player> p) {
     Player* raw = p.get();
     players.emplace_back(std::move(p));

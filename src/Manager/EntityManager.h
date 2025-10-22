@@ -17,6 +17,9 @@ class EntityManager{
 public:
     explicit EntityManager(GameMap* gameMap);
     ~EntityManager();
+    void setOnReward(std::function<void(int)> cb);
+    // 供敌人子类调用（比如奖励箱）
+    void grantReward(int amount);
 
     // —— 实体创建 ——
     // 传入 unique_ptr，容器接管所有权；返回裸指针供调用方临时使用（例如绑定输入）。
@@ -47,6 +50,10 @@ private:
     std::vector<std::unique_ptr<Player>> players;
     std::vector<std::unique_ptr<Bullet>> bullets;
     std::vector<std::unique_ptr<Enemy>> enemies;
+
+    //奖励回调：参数为奖励数量（金币等）
+    //至于奖励怎么加分/加币，交给外层（GameWindow / GameLogic）在 setOnReward() 里绑定即可。
+    std::function<void(int)> m_onReward;
 };
 
 #endif //ENTITYMANAGER_H
