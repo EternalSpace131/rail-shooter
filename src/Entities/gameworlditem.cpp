@@ -84,6 +84,10 @@ void GameWorldItem::gameTick()
     // 更新射击冷却
     if (m_shootCooldownCounter > 0) {
         m_shootCooldownCounter -= DEFAULT_DELTA_TIME_MS;
+    }else {
+        // 冷却结束，自动发射子弹（新增逻辑）
+        playerShoot(); // 调用现有射击方法
+        m_shootCooldownCounter = SHOOT_COOLDOWN_MS; // 重置冷却
     }
 
     // 更新敌人生成
