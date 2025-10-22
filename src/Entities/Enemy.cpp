@@ -16,6 +16,7 @@ void Enemy::tick() {
     //抵线处理
     if(getPosition().y()+m_height/2.0 >= m_gameMapPtr->goalLineY()) {
         m_isAlive = false;//抵线后消失
+        onLeak(nullptr);// 当前默认无操作；奖励箱会覆写它
     }
     //触碰边界处理
     if(!m_gameMapPtr->bounds().intersects(getBoundingBox())) {
