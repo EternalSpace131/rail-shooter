@@ -34,7 +34,7 @@ void Enemy::tick() {
     const qreal oldSpeed = m_speed;
     m_speed = oldSpeed * m_speedFrameMult;
     move();
-    m_speed+=oldSpeed;// 还原基础速度（加成只影响当帧）
+    m_speed=oldSpeed;// 还原基础速度（加成只影响当帧）
 
     //抵线处理
     if(getPosition().y()+m_height/2.0 >= m_gameMapPtr->goalLineY()) {
