@@ -12,6 +12,16 @@ class Enemy: public Entity{
 public:
   Enemy(qreal x, qreal y, qreal width, qreal height,GameMap* map,int deltaTime,qreal speed,int hp);
 
+  // 每帧开始前由管理器清零（光环是“本帧生效”的暂态）
+  void resetFrameBuffs();
+
+  // 供光环调用
+  void addSpeedMult(qreal m);
+  void addDefense(int v);
+
+  // 给管理器调用的“光环施放”虚函数（默认空实现）
+  virtual void applyAura(const std::vector<Enemy*>&/*allEnemies*/);
+
   void tick() override;
 
   void draw(QPainter* painter) override;
@@ -26,6 +36,12 @@ public:
 
 private:
   int m_hp{1};
+  int m_defenseBase{0};
+  // “本帧”临时加成（由管理器先重置、再由光环叠加）
+  qreal m_speedFrameMult{1.0};
+  int   m_defenseFrameAdd{0};
+  bool  m_isElite{false};
+  bool  m_isBoss{false};
 };
 
 

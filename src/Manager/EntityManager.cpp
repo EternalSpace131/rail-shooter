@@ -43,9 +43,23 @@ Bullet *EntityManager::addBullet(std::unique_ptr<Bullet> b) {
 void EntityManager::tickAll() {
     // 推进所有实体各自的内部逻辑
     for (auto& p : players) p->tick();
-    for (auto& e : enemies) e->tick();
-    for (auto& b : bullets) b->tick();
 
+     //敌人：先重置临时加成 → 施放光环 → 再逐个 tick()
+    //收集裸指针列表，便于传给 applyAura
+    std::vector<Enemy*> raw;
+    raw.reserve(enemies.size());
+    for (auto& e : enemies) raw.push_back(e.get());
+
+    //  重置临时加成
+    for (auto* e : raw) if (e->isAlive()) e->resetFrameBuffs();
+
+    // 施放光环（由子类覆写）
+    for (auto* e : raw) if (e->isAlive()) e->applyAura(raw);
+
+    // 逐个推进
+    for (auto& e : enemies) e->tick();
+
+    for (auto& b : bullets) b->tick();
 
     // 极简碰撞：Bullet × Enemy 的 AABB 相交
     for (auto& b : bullets) if (b->isAlive()) {
