@@ -11,8 +11,31 @@ Enemy::Enemy(qreal x, qreal y, qreal width, qreal height, GameMap *map, int delt
     m_direction=QPointF(0,1);
 }
 
+void Enemy::addDefense(int v) {
+    m_defenseFrameAdd+=v;
+}
+
+void Enemy::addSpeedMult(qreal m) {
+    m_speedFrameMult*=m;
+}
+
+void Enemy::resetFrameBuffs() {
+    m_speedFrameMult=1.0;
+    m_defenseFrameAdd=0;
+}
+
+void Enemy::applyAura(const std::vector<Enemy *> &) {}
+
+
+
+
 void Enemy::tick() {
+    // 应用本帧速度加成后移动
+    const qreal oldSpeed = m_speed;
+    m_speed = oldSpeed * m_speedFrameMult;
     move();
+    m_speed+=oldSpeed;// 还原基础速度（加成只影响当帧）
+
     //抵线处理
     if(getPosition().y()+m_height/2.0 >= m_gameMapPtr->goalLineY()) {
         m_isAlive = false;//抵线后消失
@@ -24,11 +47,15 @@ void Enemy::tick() {
     }
 }
 
+// 可选：绘制时根据精英/彩蛋/BOSS换颜色
 void Enemy::draw(QPainter *painter) {
     if(!painter) {
         return;
     }
-    painter->fillRect(getBoundingBox(),Qt::red);
+    QColor c = Qt::red;
+    if (m_isBoss) c = QColor(180,30,180);
+    else if (m_isElite) c = QColor(255,100,100);
+    painter->fillRect(getBoundingBox(), c);
 }
 
 void Enemy::takeDamage(int damage) {
