@@ -1,13 +1,15 @@
 #include "gameworlditem.h"
-#include "Manager/EntityManager.h"       // 你的实体管理器
-#include "Gamelogic/GameMap.h"             // 你的地图
-#include "Entities/Player.h"   // 你的玩家类 (确保路径正确)
-#include "Entities/Enemy.h"    // (未来你可能在这里生成敌人)
+#include "Manager/EntityManager.h"
+#include "Gamelogic/GameMap.h"
+#include "Entities/Player.h"
+#include "Entities/Enemy.h"
 #include "Entities/Bullet.h"
 #include <QPainter>
 #include <QTimer>
-#include <QDebug> // 用于调试
+#include <QDebug>
 #include <QRandomGenerator>
+#include "EnemySpec.h"
+#include "AuraEnemies.h"
 
 GameWorldItem::GameWorldItem(qreal mapWidth, qreal mapHeight, QGraphicsItem* parent)
     : QGraphicsObject(parent),
@@ -15,7 +17,9 @@ GameWorldItem::GameWorldItem(qreal mapWidth, qreal mapHeight, QGraphicsItem* par
     m_moveLeft(false),
     m_moveRight(false),
     m_enemySpawnCounter(0),
-    m_shootCooldownCounter(0)
+    m_shootCooldownCounter(0),
+    m_fireRate(500),
+    m_currentCooldown(0)
 {
     // --- 1. 创建你的 GameMap ---
     // 定义地图的边界和终点线
@@ -31,10 +35,9 @@ GameWorldItem::GameWorldItem(qreal mapWidth, qreal mapHeight, QGraphicsItem* par
 
     // --- 3. 创建并添加玩家 ---
     qreal playerX = m_gameMap->bounds().center().x();
-    qreal playerY = m_gameMap->goalLineY() - 60; // 与你 Player::tick 中的逻辑一致
+    qreal playerY = m_gameMap->goalLineY()+30; // 与你 Player::tick 中的逻辑一致
 
-    // 假设玩家大小为 30x30 (你需要根据你的设计调整)
-    auto player = std::make_unique<Player>(playerX, playerY, 30, 30, m_gameMap.get(), DEFAULT_DELTA_TIME_MS);
+    auto player = std::make_unique<Player>(playerX, playerY, 120, 120, m_gameMap.get(), DEFAULT_DELTA_TIME_MS);
 
     // 将玩家添加到管理器，并保留一个原始指针用于输入
     m_player = m_entityManager->addPlayer(std::move(player));
@@ -79,15 +82,17 @@ void GameWorldItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *opt
 // QTimer 每 16ms 调用一次此函数
 void GameWorldItem::gameTick()
 {
-    // --- 1. 更新计时器 ---
 
-    // 更新射击冷却
-    if (m_shootCooldownCounter > 0) {
-        m_shootCooldownCounter -= DEFAULT_DELTA_TIME_MS;
-    }else {
-        // 冷却结束，自动发射子弹（新增逻辑）
-        playerShoot(); // 调用现有射击方法
-        m_shootCooldownCounter = SHOOT_COOLDOWN_MS; // 重置冷却
+    if (!m_player) return;  // 玩家为空时不处理
+
+    // 1. 冷却时间递减（基于玩家的帧间隔时间同步）
+    m_currentCooldown -= m_player->getDeltaTime();
+    if (m_currentCooldown < 0) m_currentCooldown = 0;
+
+    // 2. 冷却结束时自动发射子弹，并重置冷却
+    if (m_currentCooldown == 0) {
+        playerShoot();
+        m_currentCooldown = m_fireRate;  // 重置为设定的发射间隔
     }
 
     // 更新敌人生成
@@ -97,7 +102,7 @@ void GameWorldItem::gameTick()
         m_enemySpawnCounter = 0;
     }
 
-    // --- 2. 运行所有游戏逻辑 ---
+    // --- 3. 运行所有游戏逻辑 ---
     // (tick, 碰撞检测, 清理)
     m_entityManager->tickAll();
 
@@ -105,43 +110,79 @@ void GameWorldItem::gameTick()
     update();
 }
 
+// void GameWorldItem::spawnEnemy()
+// {
+//     // 1. 获取地图边界
+//     const QRectF& bounds = m_gameMap->bounds();
+
+//     // 2. 定义敌人的属性
+//     qreal enemyWidth = 100.0;
+//     qreal enemyHeight = 100.0;
+//     qreal enemySpeed = 100.0;
+//     int enemyHp = 1;
+
+//     // 3. 计算生成位置
+
+//     // 3a. 计算 X 轴的最小、最大值和范围
+//     qreal minX = bounds.left() + enemyWidth / 2.0;
+//     qreal maxX = bounds.right() - enemyWidth / 2.0;
+//     qreal rangeX = 0.0; // X 轴的范围
+
+//     if (minX < maxX) {
+//         rangeX = maxX - minX;
+//     }
+
+//     // 3b. 使用 generateDouble() 来获取一个 [0, 1) 之间的随机因子
+//     qreal randomFactor = QRandomGenerator::global()->generateDouble();
+
+//     // 3c. 手动计算 spawnX
+//     qreal spawnX = minX + (randomFactor * rangeX);
+
+//     // ^^^ 修改结束 ^^^
+
+//     // Y 轴
+//     qreal spawnY = bounds.top() - enemyHeight / 2.0;
+
+//     // 4. 创建敌人
+//     auto enemy = std::make_unique<Enemy>(
+//         spawnX,
+//         spawnY,
+//         enemyWidth,
+//         enemyHeight,
+//         m_gameMap.get(),
+//         DEFAULT_DELTA_TIME_MS,
+//         enemySpeed,
+//         enemyHp
+//         );
+
+//     // 5. 将敌人添加到管理器
+//     m_entityManager->addEnemy(std::move(enemy));
+// }
+
 void GameWorldItem::spawnEnemy()
 {
-    // 1. 获取地图边界
+    // 1. 从 kEnemyBook 中随机选择一个敌人类型
+    auto kEnemyBook = getEnemyBook();
+    if (kEnemyBook.empty()) return; // 防止空列表
+    int randomIndex = QRandomGenerator::global()->bounded(kEnemyBook.size());
+    const EnemySpec& spec = kEnemyBook[randomIndex];
+
+    // 2. 计算生成位置（X轴随机，Y轴可选行分布）
     const QRectF& bounds = m_gameMap->bounds();
+    qreal enemyWidth = spec.body.width();
+    qreal enemyHeight = spec.body.height();
 
-    // 2. 定义敌人的属性
-    qreal enemyWidth = 30.0;
-    qreal enemyHeight = 30.0;
-    qreal enemySpeed = 100.0;
-    int enemyHp = 1;
-
-    // 3. 计算生成位置
-
-    // 3a. 计算 X 轴的最小、最大值和范围
+    // X轴：在地图随机生成
     qreal minX = bounds.left() + enemyWidth / 2.0;
-    qreal maxX = bounds.right() - enemyWidth / 2.0;
-    qreal rangeX = 0.0; // X 轴的范围
+    qreal maxX = bounds.left() + bounds.width();
+    qreal rangeX = maxX - minX;
+    qreal randomFactorX = QRandomGenerator::global()->generateDouble();
+    qreal spawnX = minX + (randomFactorX * rangeX);
 
-    if (minX < maxX) {
-        rangeX = maxX - minX;
-    }
-
-    // vvv 这是解决问题的关键 vvv
-
-    // 3b. 使用 generateDouble() 来获取一个 [0, 1) 之间的随机因子
-    //     这个函数没有重载，没有歧义！
-    qreal randomFactor = QRandomGenerator::global()->generateDouble();
-
-    // 3c. 手动计算 spawnX
-    qreal spawnX = minX + (randomFactor * rangeX);
-
-    // ^^^ 修改结束 ^^^
-
-    // Y 轴
+    // Y轴：可选行分布
     qreal spawnY = bounds.top() - enemyHeight / 2.0;
 
-    // 4. 创建敌人
+    // 3. 根据敌人类型创建对应实例（这里以基础Enemy为例，若有派生类需扩展）
     auto enemy = std::make_unique<Enemy>(
         spawnX,
         spawnY,
@@ -149,17 +190,18 @@ void GameWorldItem::spawnEnemy()
         enemyHeight,
         m_gameMap.get(),
         DEFAULT_DELTA_TIME_MS,
-        enemySpeed,
-        enemyHp
+        spec.speed,
+        spec.hp,
+        spec.animationFrames
         );
+
+    // 4. 设置精英、BOSS、光环等特殊属性（示例：基础赋值，派生类需单独处理）
+    enemy->setElite(spec.elite);
+    enemy->setBoss(spec.boss);
 
     // 5. 将敌人添加到管理器
     m_entityManager->addEnemy(std::move(enemy));
 }
-
-// --- 步骤 1.b：确保 Player 可以接收输入 ---
-// 你需要在 Player.h 中添加一个 public 函数:
-// void setHorizontalDirection(qreal xDir) { m_direction.setX(xDir); }
 
 // --- 键盘输入处理 ---
 void GameWorldItem::keyPressEvent(QKeyEvent *event)
@@ -170,16 +212,6 @@ void GameWorldItem::keyPressEvent(QKeyEvent *event)
         m_moveLeft = true;
     } else if (event->key() == Qt::Key_D || event->key() == Qt::Key_Right) {
         m_moveRight = true;
-
-        // vvv 新增：处理空格键 vvv
-    } else if (event->key() == Qt::Key_Space) {
-        // 检查射击冷却是否已过
-        if (m_shootCooldownCounter <= 0) {
-            playerShoot(); // 调用射击函数
-            m_shootCooldownCounter = SHOOT_COOLDOWN_MS; // 重置冷却时间
-        }
-        // ^^^ 新增结束 ^^^
-
     }
 
     updatePlayerDirection();
@@ -215,42 +247,31 @@ void GameWorldItem::updatePlayerDirection()
 void GameWorldItem::playerShoot()
 {
     if (!m_player) {
-        // 如果玩家不存在 (例如刚被摧毁)，则不执行任何操作
         return;
     }
 
-    // --- 1. 定义子弹属性 (你可以随意调整) ---
-    qreal bulletWidth = 5.0;   // 子弹宽度
-    qreal bulletHeight = 15.0; // 子弹高度
-    qreal bulletSpeed = 400.0; // 子弹速度 (像素/秒)
-    int bulletDamage = 1;      // 子弹伤害
-    QPointF bulletDir(0, -1);  // 方向 (0, -1) 表示正上方
+    const QPointF playerPos = m_player->getPosition();  // 玩家中心位置
+    const qreal playerHalfHeight = m_player->getBoundingBox().height() / 2;  // 玩家半高
 
-    // --- 2. 计算子弹的起始位置 ---
-    // 我们从玩家的“头顶”中心发射
+    const qreal bulletSize = 80;
+    const qreal bulletSpeed = 600;  // 像素/秒
+    const QPointF bulletDir(0, -1);  // 固定向上
+    const int bulletDamage = 1;
 
-    const QRectF& playerBox = m_player->getBoundingBox();
-    QPointF playerPos = m_player->getPosition(); // 玩家的中心点
+    // 计算子弹初始位置（玩家顶部正上方)
+    qreal bulletX = playerPos.x();
+    qreal bulletY = playerPos.y() - playerHalfHeight - bulletSize / 2;
 
-    // 玩家的 X 坐标
-    qreal spawnX = playerPos.x();
-    // 玩家的 Y 坐标 (中心) 减去半个玩家高度 (玩家头顶) 再减去半个子弹高度 (子弹中心)
-    qreal spawnY = playerPos.y() - (playerBox.height() / 2.0) - (bulletHeight / 2.0);
-
-    // --- 3. 创建子弹 ---
-    // (使用你 Bullet.h 中定义的构造函数)
+    // 创建子弹并添加到实体管理器
     auto bullet = std::make_unique<Bullet>(
-        spawnX,
-        spawnY,
-        bulletWidth,
-        bulletHeight,
-        m_gameMap.get(),
-        DEFAULT_DELTA_TIME_MS,
+        bulletX, bulletY,
+        bulletSize, bulletSize,
+        m_entityManager->map(),
+        m_player->getDeltaTime(),  // 与玩家同帧率
         bulletSpeed,
         bulletDir,
         bulletDamage
         );
 
-    // --- 4. 将子弹添加到管理器 ---
     m_entityManager->addBullet(std::move(bullet));
 }

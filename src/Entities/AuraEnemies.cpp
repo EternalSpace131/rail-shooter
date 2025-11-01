@@ -3,8 +3,8 @@
 //
 #include "AuraEnemies.h"
 
-DefenseAuraEnemy::DefenseAuraEnemy(qreal x, qreal y, qreal w, qreal h, GameMap *map, int dt, qreal speed, int hp,  qreal radius, int defenseAdd):
-Enemy(x,y,w,h,map,dt,speed,hp) {
+DefenseAuraEnemy::DefenseAuraEnemy(qreal x, qreal y, qreal w, qreal h, GameMap *map, int dt, qreal speed, int hp,  qreal radius, int defenseAdd,const QStringList& animFrames):
+Enemy(x,y,w,h,map,dt,speed,hp,animFrames) {
     m_radius = radius;
     m_defAdd=defenseAdd;
 }
@@ -18,8 +18,8 @@ void DefenseAuraEnemy::applyAura(const std::vector<Enemy *> &all) {
     }
 }
 
-SpeedAuraEnemy::SpeedAuraEnemy(qreal x, qreal y, qreal w, qreal h, GameMap *map, int dt, qreal speed, int hp, qreal radius, qreal speedMult):
-Enemy(x,y,w,h,map,dt,speed,hp){
+SpeedAuraEnemy::SpeedAuraEnemy(qreal x, qreal y, qreal w, qreal h, GameMap *map, int dt, qreal speed, int hp, qreal radius, qreal speedMult,const QStringList& animFrames):
+Enemy(x,y,w,h,map,dt,speed,hp,animFrames){
     m_radius = radius;
     m_Mult=speedMult;
 }

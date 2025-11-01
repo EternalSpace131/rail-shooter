@@ -8,7 +8,7 @@
 class DefenseAuraEnemy: public Enemy {
 public:
     DefenseAuraEnemy(qreal x,qreal y,qreal w,qreal h,GameMap* map,int dt,qreal speed,int hp,
-                     qreal radius,int defenseAdd);
+                     qreal radius,int defenseAdd,const QStringList& animFrames);
 
     void applyAura(const std::vector<Enemy *> & all) override;
 
@@ -20,7 +20,7 @@ private:
 class SpeedAuraEnemy : public Enemy {
 public:
     SpeedAuraEnemy(qreal x,qreal y,qreal w,qreal h,GameMap* map,int dt,qreal speed,int hp,
-                   qreal radius,qreal speedMult);
+                   qreal radius,qreal speedMult,const QStringList& animFrames);
 
     void applyAura(const std::vector<Enemy *> & all) override;
 

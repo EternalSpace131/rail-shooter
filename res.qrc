@@ -1,6 +1,39 @@
 <RCC>
     <qresource prefix="/">
-        <file>assets/images/button.png</file>
         <file>assets/images/mainGameScene_bgc.png</file>
+        <file>assets/images/StartWindow.png</file>
+        <file>assets/images/buttons/start.png</file>
+        <file>assets/images/buttons/return.png</file>
+        <file>assets/images/buttons/brochure.png</file>
+        <file>assets/images/buttons/ranking.png</file>
+        <file>assets/images/buttons/exit.png</file>
+        <file>assets/images/character/cat/cat1.png</file>
+        <file>assets/images/character/cat/cat2.png</file>
+        <file>assets/images/character/cat/cat3.png</file>
+        <file>assets/images/character/cat/cat4.png</file>
+        <file>assets/images/spit.png</file>
+        <file>assets/images/character/man/man.png</file>
+        <file>assets/images/character/naughty/naughty1.png</file>
+        <file>assets/images/character/naughty/naughty2.png</file>
+        <file>assets/images/character/naughty/naughty3.png</file>
+        <file>assets/images/character/naughty/naughty4.png</file>
+        <file>assets/images/character/naughty/naughty5.png</file>
+        <file>assets/images/character/naughty/naughty6.png</file>
+        <file>assets/images/character/naughty/naughty7.png</file>
+        <file>assets/images/character/naughty/naughty8.png</file>
+        <file>assets/images/character/nju/nju.png</file>
+        <file>assets/images/character/songhao/songhao1.png</file>
+        <file>assets/images/character/songhao/songhao2.png</file>
+        <file>assets/images/character/penguin/penguin1.png</file>
+        <file>assets/images/character/penguin/penguin2.png</file>
+        <file>assets/images/character/wujing/wujing1.png</file>
+        <file>assets/images/character/wujing/wujing2.png</file>
+        <file>assets/images/character/wujing/wujing3.png</file>
+        <file>assets/images/character/wujing/wujing4.png</file>
+        <file>assets/images/character/xiaoyan/xiaoyan1.png</file>
+        <file>assets/images/character/xiaoyan/xiaoyan2.png</file>
+        <file>assets/images/character/xiaoyan/xiaoyan3.png</file>
+        <file>assets/images/character/xiaoyan/xiaoyan4.png</file>
+        <file>assets/images/character/xiaoyan/xiaoyan5.png</file>
     </qresource>
 </RCC>

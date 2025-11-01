@@ -48,6 +48,8 @@ private:
     void updatePlayerDirection();
     void spawnEnemy();
     void playerShoot();
+    const int m_fireRate;            // 发射间隔（毫秒，控制自动发射频率，默认500ms/发）
+    int m_currentCooldown;           // 当前剩余冷却时间
 
     // --- 你的游戏逻辑对象 ---
     // 使用智能指针自动管理内存

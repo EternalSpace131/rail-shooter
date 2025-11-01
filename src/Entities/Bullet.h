@@ -5,7 +5,9 @@
 #ifndef BULLET_H
 #define BULLET_H
 
+#include <QPixmap>
 #include "Entity.h"
+
 class Bullet : public Entity{
 public:
   Bullet(qreal x, qreal y, qreal width, qreal height,GameMap* map,int deltaTime,qreal speed,const QPointF& dir,int damage);
@@ -20,6 +22,7 @@ public:
 private:
   int m_damage{1};
   void normalizeDirection();//将方向向量归一化
+  QPixmap m_bulletPixmap; // 存储子弹图片
 };
 
 

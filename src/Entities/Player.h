@@ -5,8 +5,13 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 #include"Entity.h"
+#include <QTimer>
+#include <QPixmap>
+#include <QVector>
+#include <QObject>
 
 class Player : public Entity{
+    Q_OBJECT
 public:
   Player(qreal x, qreal y, qreal width, qreal height, GameMap* map,int deltaTime);
 
@@ -23,6 +28,11 @@ public:
   }
 protected:
   //todo
+private:
+    QVector<QPixmap> m_animationFrames; // 存储动画帧
+    int m_currentFrameIndex = 0;        // 当前帧索引
+    QTimer m_animationTimer;            // 控制帧切换的定时器
+    void loadAnimationFrames();         // 加载动画帧的辅助函数
 };
 
 

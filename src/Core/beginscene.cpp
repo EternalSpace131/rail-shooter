@@ -12,7 +12,9 @@ beginScene::beginScene(QWidget *parent)
 
     bgc = new QGraphicsPixmapItem;
     bgc->setZValue(0);
-    bgc->setPixmap(QPixmap(":/assets/images/beginScene_bgc.png"));
+    QPixmap originalPixmap(":/assets/images/StartWindow.png");
+    QPixmap scaledPixmap = originalPixmap.scaled(350, 595, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    bgc->setPixmap(scaledPixmap);
     begin_scene->addItem(bgc);
 
     QGraphicsView *view = new QGraphicsView(begin_scene, this);
@@ -20,30 +22,24 @@ beginScene::beginScene(QWidget *parent)
     view->show();
 
     //开始按钮
-    MyPushButton *startBtn = new MyPushButton(":/assets/images/button.png");
-    // QPixmap pixmap(":/assets/images/button.png");
-    // if (pixmap.isNull()) {
-    //     qDebug() << "资源加载失败！路径错误或资源未编译。";
-    // } else {
-    //     qDebug() << "资源加载成功！";
-    // }
+    MyPushButton *startBtn = new MyPushButton(":/assets/images/buttons/start.png");
     startBtn->setParent(this);
-    startBtn->setGeometry(125,280,100,100);
+    startBtn->setGeometry(105,280,100,100);
 
     //得分记录
-    MyPushButton *score_record_btn = new MyPushButton(":/assets/images/button.png");
+    MyPushButton *score_record_btn = new MyPushButton(":/assets/images/buttons/ranking.png");
     score_record_btn->setParent(this);
-    score_record_btn->setGeometry(125,350,100,100);
+    score_record_btn->setGeometry(105,350,100,100);
 
     //图鉴
-    MyPushButton *picture_book_btn = new MyPushButton(":/assets/images/button.png");
+    MyPushButton *picture_book_btn = new MyPushButton(":/assets/images/buttons/brochure.png");
     picture_book_btn->setParent(this);
-    picture_book_btn->setGeometry(125,420,100,100);
+    picture_book_btn->setGeometry(105,420,100,100);
 
     //退出按钮
-    MyPushButton *exitBtn = new MyPushButton(":/assets/images/button.png");
+    MyPushButton *exitBtn = new MyPushButton(":/assets/images/buttons/exit.png");
     exitBtn->setParent(this);
-    exitBtn->setGeometry(125,490,100,100);
+    exitBtn->setGeometry(105,490,100,100);
 
     //点击开始按钮进入主游戏界面
     connect(startBtn,&QPushButton::clicked,[=](){

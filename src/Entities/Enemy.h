@@ -5,12 +5,13 @@
 #ifndef ENEMY_H
 #define ENEMY_H
 #include "Entity.h"
+#include <QTimer>
 
 class EntityManager;// 前置声明，供 onKilled/onLeak 使用
 
 class Enemy: public Entity{
 public:
-  Enemy(qreal x, qreal y, qreal width, qreal height,GameMap* map,int deltaTime,qreal speed,int hp);
+  Enemy(qreal x, qreal y, qreal width, qreal height,GameMap* map,int deltaTime,qreal speed,int hp,const QStringList& animFramePaths);
 
   // 每帧开始前由管理器清零（光环是“本帧生效”的暂态）
   void resetFrameBuffs();
@@ -34,6 +35,11 @@ public:
   // 新增：敌人“触线到底部时”的钩子（在 tick 里触发）
   virtual void onLeak(EntityManager* /*mgr*/) { /* 默认无操作（基础敌人目前也只是自毁）*/ }
 
+  bool isElite() const { return m_isElite; }
+  bool isBoss() const { return m_isBoss; }
+  void setElite(bool elite) { m_isElite = elite; }
+  void setBoss(bool boss) { m_isBoss = boss; }
+
 private:
   int m_hp{1};
   int m_defenseBase{0};
@@ -42,6 +48,11 @@ private:
   int   m_defenseFrameAdd{0};
   bool  m_isElite{false};
   bool  m_isBoss{false};
+
+  QVector<QPixmap> m_animationFrames; // 存储动画帧
+  int m_currentFrameIndex = 0;        // 当前帧索引
+  QTimer m_animationTimer;            // 控制帧切换的定时器
+  void loadAnimationFrames(const QStringList&);         // 加载动画帧的辅助函数
 };
 
 

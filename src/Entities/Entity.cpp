@@ -16,7 +16,8 @@
  * 如果贴图加载失败，会输出一个警告。这在调试时非常有用！
  */
 Entity::Entity(qreal startX, qreal startY, qreal width, qreal height, GameMap* gameMap, int deltaTime)
-    : m_position(startX, startY),
+    : QObject(nullptr),
+      m_position(startX, startY),
       m_width(width),
       m_height(height),
       m_speed(0),
