@@ -5,10 +5,39 @@
 
 #include <GameLogic/GameMap.h>
 
-Enemy::Enemy(qreal x, qreal y, qreal width, qreal height, GameMap *map, int deltaTime, qreal speed, int hp)
+Enemy::Enemy(qreal x, qreal y, qreal width, qreal height, GameMap *map, int deltaTime, qreal speed, int hp,const QStringList& animFramePaths)
     :Entity(x, y, width, height, map, deltaTime),m_hp(hp){
     m_speed = speed;
     m_direction=QPointF(0,1);
+
+    // 加载当前敌人的动画帧
+    loadAnimationFrames(animFramePaths);
+
+    // 配置动画定时器（每100ms切换一帧，可调整速度）
+    m_animationTimer.setInterval(100);
+    connect(&m_animationTimer, &QTimer::timeout, this, [this]() {
+        if (m_animationFrames.isEmpty()) return;
+        // 循环切换帧索引（0 → 1 → ... → 最后一帧 → 0）
+        m_currentFrameIndex = (m_currentFrameIndex + 1) % m_animationFrames.size();
+    });
+    m_animationTimer.start(); // 启动定时器
+}
+
+// 加载动画帧的辅助函数
+void Enemy::loadAnimationFrames(const QStringList& paths) {
+    m_animationFrames.clear(); // 清空原有帧
+    for (const QString& path : paths) {
+        QPixmap frame(path);
+        if (!frame.isNull()) {
+            // 缩放帧尺寸与敌人尺寸一致
+            QPixmap scaledFrame = frame.scaled(
+                m_width, m_height,
+                Qt::KeepAspectRatio,
+                Qt::SmoothTransformation
+                );
+            m_animationFrames.append(scaledFrame);
+        }
+    }
 }
 
 void Enemy::addDefense(int v) {
@@ -25,9 +54,6 @@ void Enemy::resetFrameBuffs() {
 }
 
 void Enemy::applyAura(const std::vector<Enemy *> &) {}
-
-
-
 
 void Enemy::tick() {
     // 应用本帧速度加成后移动
@@ -52,11 +78,23 @@ void Enemy::draw(QPainter *painter) {
     if(!painter) {
         return;
     }
-    QColor c = Qt::red;
-    if (m_isBoss) c = QColor(180,30,180);
-    else if (m_isElite) c = QColor(255,100,100);
-    painter->fillRect(getBoundingBox(), c);
+
+    if (!m_animationFrames.isEmpty()) {
+        // 绘制当前帧（位置与敌人坐标对齐）
+        painter->drawPixmap(
+            getPosition().x() - m_width/2,
+            getPosition().y() - m_height/2,
+            m_animationFrames[m_currentFrameIndex]
+            );
+    } else {
+        // 原颜色块绘制逻辑
+        QColor c = Qt::red;
+        if (m_isBoss) c = QColor(180, 30, 180);
+        else if (m_isElite) c = QColor(255, 100, 100);
+        painter->fillRect(getBoundingBox(), c);
+    }
 }
+
 
 void Enemy::takeDamage(int damage) {
     m_hp -= damage;

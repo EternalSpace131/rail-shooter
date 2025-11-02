@@ -6,6 +6,8 @@
 #define ENEMYSPEC_H
 #include<QString>
 #include<QSizeF>
+#include <QStringList>
+
 enum class EnemyKind{ Mowan, Kobe, Wujing, Penguin, Xiaoyan, Songhao, NJUboss};
 
 struct EnemySpec {
@@ -23,6 +25,15 @@ struct EnemySpec {
     qreal auraRadius=0; //像素
     qreal auraSpeedMult=1; //速度乘子
     int auraDefenceAdd=0;  //防御加值
+
+    // 动画资源路径
+    QStringList animationFrames;
+
+    //权重
+    int wight = 1;
 };
+
+std::vector<EnemySpec> getEnemyBook();
+
 
 #endif //ENEMYSPEC_H

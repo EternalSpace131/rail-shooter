@@ -9,10 +9,12 @@
 #include <QRectF>
 #include <QPixmap>
 #include <QPainter>
+#include <QObject>
 
 class GameMap; // 前向声明，避免循环引用
 
-class Entity {
+class Entity : public QObject{
+    Q_OBJECT
 protected:
     // --- 核心属性 ---
     QPointF m_position;        // 位置：实体在地图上的精确坐标，是中心点

@@ -17,9 +17,9 @@ picturebook::picturebook(QWidget *parent)
     view->show();
 
     //返回按钮
-    MyPushButton *backBtn = new MyPushButton(":/assets/images/button.png");
+    MyPushButton *backBtn = new MyPushButton(":/assets/images/buttons/return.png");
     backBtn->setParent(this);
-    backBtn->setGeometry(240,10,100,100);
+    backBtn->setGeometry(180,10,100,100);
 
     //点击返回按钮回到开始界面
     connect(backBtn,&QPushButton::clicked,[=](){
