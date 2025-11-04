@@ -6,7 +6,7 @@
 #include<Entities/Enemy.h>
 #include<Entities/Bullet.h>
 #include<GameLogic/GameMap.h>
-
+#include <Entities/EnemySpec.h>
 
 EntityManager::EntityManager(GameMap* map) : m_map(map) {}
 EntityManager::~EntityManager() = default;
@@ -39,6 +39,17 @@ Bullet *EntityManager::addBullet(std::unique_ptr<Bullet> b) {
     return raw;
 }
 
+// 加分
+void EntityManager::addScore(int score) {
+    if (score > 0) {
+        m_totalScore += score;
+    }
+}
+
+// 获取总分
+int EntityManager::getTotalScore() const {
+    return m_totalScore;
+}
 
 void EntityManager::tickAll() {
     // 推进所有实体各自的内部逻辑
@@ -62,18 +73,28 @@ void EntityManager::tickAll() {
     for (auto& b : bullets) b->tick();
 
     // 极简碰撞：Bullet × Enemy 的 AABB 相交
+
     for (auto& b : bullets) if (b->isAlive()) {
-        for (auto& e : enemies) if (e->isAlive()) {
-            if (b->getBoundingBox().intersects(e->getBoundingBox())) {
-                e->takeDamage(b->damage()); // 伤害结算
-                if(!e->isAlive()) {
-                    e->onKilled(this);//让具体敌人在死亡时执行自定义行为（比如奖励）
+            for (auto& e : enemies) if (e->isAlive()) {
+                    if (b->getBoundingBox().intersects(e->getBoundingBox())) {
+                        e->takeDamage(b->damage());// 伤害结算
+                        if(!e->isAlive()) {
+                            e->onKilled(this);//让具体敌人在死亡时执行自定义行为（比如奖励）
+                            // 根据敌人类型匹配分数并添加
+                            std::vector<EnemySpec> enemyBook = getEnemyBook();
+                            for (const auto& spec : enemyBook) {
+                                if (spec.kind == e->getKind()) { // 依赖 Enemy::getKind() 方法
+                                    addScore(spec.score);
+                                    break;
+                                }
+                            }
+                        }
+                        b->kill(); // 命中即销毁该子弹（防止穿透）
+                        break;// 一颗子弹只命中一个敌人
+                    }
                 }
-                b->kill(); // 命中即销毁该子弹（防止穿透）
-                break; // 一颗子弹只命中一个敌人
-            }
         }
-    }
+
 
 
     // 3) 清理：

@@ -5,11 +5,13 @@
 #ifndef REWARDCRATE_H
 #define REWARDCRATE_H
 #include"Entity.h"
+
+
 class EntityManager;
 
 class RewardCrate : public Enemy{
 public:
-  RewardCrate(qreal x, qreal y, qreal width, qreal height,GameMap* map,int deltaTime,qreal speed,int hp,int reward,const QStringList& animFrames);
+  RewardCrate(qreal x, qreal y, qreal width, qreal height,GameMap* map,int deltaTime,qreal speed,int hp,int reward,EnemyKind kind,const QStringList& animFrames);
 
   void draw(QPainter *painter) override;
 

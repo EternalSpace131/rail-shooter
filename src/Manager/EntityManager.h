@@ -21,6 +21,10 @@ public:
     // 供敌人子类调用（比如奖励箱）
     void grantReward(int amount);
 
+    //分数管理接口
+    void addScore(int score);
+    int getTotalScore() const;
+
     // —— 实体创建 ——
     // 传入 unique_ptr，容器接管所有权；返回裸指针供调用方临时使用（例如绑定输入）。
     Player* addPlayer(std::unique_ptr<Player> p);
@@ -54,6 +58,9 @@ private:
     //奖励回调：参数为奖励数量（金币等）
     //至于奖励怎么加分/加币，交给外层（GameWindow / GameLogic）在 setOnReward() 里绑定即可。
     std::function<void(int)> m_onReward;
+
+    //总分存储
+    int m_totalScore = 0;
 };
 
 #endif //ENTITYMANAGER_H

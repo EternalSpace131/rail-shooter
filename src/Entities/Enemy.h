@@ -6,12 +6,16 @@
 #define ENEMY_H
 #include "Entity.h"
 #include <QTimer>
+#include "EnemySpec.h"
 
 class EntityManager;// 前置声明，供 onKilled/onLeak 使用
 
 class Enemy: public Entity{
 public:
-  Enemy(qreal x, qreal y, qreal width, qreal height,GameMap* map,int deltaTime,qreal speed,int hp,const QStringList& animFramePaths);
+  Enemy(qreal x, qreal y, qreal width, qreal height,GameMap* map,int deltaTime,qreal speed,int hp,EnemyKind kind,const QStringList& animFramePaths);
+
+    // 获取敌人类型（用于匹配分数）
+  EnemyKind getKind() const { return m_kind; }
 
   // 每帧开始前由管理器清零（光环是“本帧生效”的暂态）
   void resetFrameBuffs();
@@ -41,6 +45,7 @@ public:
   void setBoss(bool boss) { m_isBoss = boss; }
 
 private:
+  EnemyKind m_kind; //存储敌人类型
   int m_hp{1};
   int m_defenseBase{0};
   // “本帧”临时加成（由管理器先重置、再由光环叠加）
