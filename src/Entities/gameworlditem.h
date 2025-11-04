@@ -4,10 +4,11 @@
 #include <QGraphicsObject> // 继承 QGraphicsObject
 #include <QKeyEvent>
 #include <memory> // for std::unique_ptr
+#include <QFont>
+#include "Manager/EntityManager.h"
 
 // 前向声明 (Forward declare)
 // 我们不需要在这里 #include 它们的 .h 文件，可以加快编译速度
-class EntityManager;
 class GameMap;
 class Player;
 
@@ -32,6 +33,8 @@ public:
 
     // 2. Qt 在这里调用 "draw"
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+
+    EntityManager* getEntityManager() const { return m_entityManager.get(); }
 
 protected:
     // --- 键盘输入事件 ---

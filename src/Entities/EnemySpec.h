@@ -31,6 +31,9 @@ struct EnemySpec {
 
     //权重
     int wight = 1;
+
+    //分数
+    int score;
 };
 
 std::vector<EnemySpec> getEnemyBook();

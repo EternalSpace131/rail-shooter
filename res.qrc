@@ -35,5 +35,6 @@
         <file>assets/images/character/xiaoyan/xiaoyan3.png</file>
         <file>assets/images/character/xiaoyan/xiaoyan4.png</file>
         <file>assets/images/character/xiaoyan/xiaoyan5.png</file>
+        <file>data/ranking.json</file>
     </qresource>
 </RCC>

@@ -5,8 +5,8 @@
 
 #include <GameLogic/GameMap.h>
 
-Enemy::Enemy(qreal x, qreal y, qreal width, qreal height, GameMap *map, int deltaTime, qreal speed, int hp,const QStringList& animFramePaths)
-    :Entity(x, y, width, height, map, deltaTime),m_hp(hp){
+Enemy::Enemy(qreal x, qreal y, qreal width, qreal height, GameMap *map, int deltaTime, qreal speed, int hp,EnemyKind kind,const QStringList& animFramePaths)
+    :Entity(x, y, width, height, map, deltaTime),m_hp(hp),m_kind(kind){
     m_speed = speed;
     m_direction=QPointF(0,1);
 
@@ -97,8 +97,10 @@ void Enemy::draw(QPainter *painter) {
 
 
 void Enemy::takeDamage(int damage) {
-    m_hp -= damage;
-    if(m_hp<=0) {
+    int totalDefense = m_defenseBase + m_defenseFrameAdd;
+    int finalDamage = qMax(1, damage - totalDefense); // 最小伤害1，防止无敌
+    m_hp -= finalDamage;
+    if(m_hp <= 0) {
         m_isAlive = false;
     }
 }

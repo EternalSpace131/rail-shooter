@@ -73,9 +73,37 @@ void GameWorldItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *opt
     Q_UNUSED(option); // 避免编译器警告
     Q_UNUSED(widget); // 避免编译器警告
 
-    // 我们唯一要做的就是命令 EntityManager 绘制所有实体
-    // 这会调用你所有的 Player::draw(), Enemy::draw(), Bullet::draw()
+    // 1. 绘制所有游戏实体（敌人、子弹、玩家等）
     m_entityManager->drawAll(painter);
+
+    // 2. 绘制顶部分数
+    painter->save(); // 保存画笔状态
+
+    // 初始化分数字体
+    QFont scoreFont;
+    scoreFont.setFamily("Microsoft YaHei"); // 字体
+    scoreFont.setPointSize(16); // 字号
+    scoreFont.setBold(true); // 加粗
+    painter->setFont(scoreFont);
+
+    // 分数文本（从 EntityManager 获取总分）
+    QString scoreText = QString("分数: %1").arg(m_entityManager->getTotalScore());
+
+    // 绘制文字阴影
+    painter->setPen(QColor(0, 0, 0)); // 阴影颜色：黑色
+    painter->drawText(
+        QPointF(m_gameMap->bounds().width()/2 - 100 + 1, 30 + 1), // 阴影位置（右移1，下移1）
+        scoreText
+        );
+
+    // 绘制主分数文本（白色)
+    painter->setPen(QColor(255, 255, 255)); // 文字颜色：白色
+    painter->drawText(
+        QPointF(m_gameMap->bounds().width()/2 - 100, 30), // 主文字位置
+        scoreText
+        );
+
+    painter->restore(); // 恢复画笔状态
 }
 
 // *** 关键：逻辑 ***
@@ -110,96 +138,80 @@ void GameWorldItem::gameTick()
     update();
 }
 
-// void GameWorldItem::spawnEnemy()
-// {
-//     // 1. 获取地图边界
-//     const QRectF& bounds = m_gameMap->bounds();
-
-//     // 2. 定义敌人的属性
-//     qreal enemyWidth = 100.0;
-//     qreal enemyHeight = 100.0;
-//     qreal enemySpeed = 100.0;
-//     int enemyHp = 1;
-
-//     // 3. 计算生成位置
-
-//     // 3a. 计算 X 轴的最小、最大值和范围
-//     qreal minX = bounds.left() + enemyWidth / 2.0;
-//     qreal maxX = bounds.right() - enemyWidth / 2.0;
-//     qreal rangeX = 0.0; // X 轴的范围
-
-//     if (minX < maxX) {
-//         rangeX = maxX - minX;
-//     }
-
-//     // 3b. 使用 generateDouble() 来获取一个 [0, 1) 之间的随机因子
-//     qreal randomFactor = QRandomGenerator::global()->generateDouble();
-
-//     // 3c. 手动计算 spawnX
-//     qreal spawnX = minX + (randomFactor * rangeX);
-
-//     // ^^^ 修改结束 ^^^
-
-//     // Y 轴
-//     qreal spawnY = bounds.top() - enemyHeight / 2.0;
-
-//     // 4. 创建敌人
-//     auto enemy = std::make_unique<Enemy>(
-//         spawnX,
-//         spawnY,
-//         enemyWidth,
-//         enemyHeight,
-//         m_gameMap.get(),
-//         DEFAULT_DELTA_TIME_MS,
-//         enemySpeed,
-//         enemyHp
-//         );
-
-//     // 5. 将敌人添加到管理器
-//     m_entityManager->addEnemy(std::move(enemy));
-// }
-
 void GameWorldItem::spawnEnemy()
 {
-    // 1. 从 kEnemyBook 中随机选择一个敌人类型
-    auto kEnemyBook = getEnemyBook();
-    if (kEnemyBook.empty()) return; // 防止空列表
-    int randomIndex = QRandomGenerator::global()->bounded(kEnemyBook.size());
-    const EnemySpec& spec = kEnemyBook[randomIndex];
+    auto enemyBook = getEnemyBook();
+    if (enemyBook.empty()) return;
 
-    // 2. 计算生成位置（X轴随机，Y轴可选行分布）
+    // 1. 计算总权重和权重累积列表
+    int totalWeight = 0;
+    QVector<int> weightCumulative; // 存储累积权重，用于区间匹配
+    for (const auto& spec : enemyBook) {
+        totalWeight += spec.wight; // 累加所有敌人权重（注意：原字段名是wight，非weight）
+        weightCumulative.append(totalWeight);
+    }
+
+    // 2. 生成随机数
+    int randomValue = QRandomGenerator::global()->bounded(totalWeight);
+
+    // 3. 匹配随机数对应的敌人
+    int targetIndex = 0;
+    for (int i = 0; i < weightCumulative.size(); ++i) {
+        if (randomValue < weightCumulative[i]) {
+            targetIndex = i;
+            break;
+        }
+    }
+    const EnemySpec& spec = enemyBook[targetIndex];
+
+    // 4. 生成位置、创建敌人实例逻辑
     const QRectF& bounds = m_gameMap->bounds();
     qreal enemyWidth = spec.body.width();
     qreal enemyHeight = spec.body.height();
 
-    // X轴：在地图随机生成
     qreal minX = bounds.left() + enemyWidth / 2.0;
     qreal maxX = bounds.left() + bounds.width();
     qreal rangeX = maxX - minX;
     qreal randomFactorX = QRandomGenerator::global()->generateDouble();
     qreal spawnX = minX + (randomFactorX * rangeX);
 
-    // Y轴：可选行分布
     qreal spawnY = bounds.top() - enemyHeight / 2.0;
 
-    // 3. 根据敌人类型创建对应实例（这里以基础Enemy为例，若有派生类需扩展）
-    auto enemy = std::make_unique<Enemy>(
-        spawnX,
-        spawnY,
-        enemyWidth,
-        enemyHeight,
-        m_gameMap.get(),
-        DEFAULT_DELTA_TIME_MS,
-        spec.speed,
-        spec.hp,
-        spec.animationFrames
-        );
+    // 根据敌人类型创建实例
+    std::unique_ptr<Enemy> enemy;
+    if (spec.kind == EnemyKind::Penguin) {
+        enemy = std::make_unique<DefenseAuraEnemy>(
+            spawnX, spawnY, enemyWidth, enemyHeight,
+            m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
+            spec.speed, spec.hp,
+            spec.auraRadius, spec.auraDefenceAdd,
+            spec.kind, // 传递敌人类型
+            spec.animationFrames
+            );
+    } else if (spec.kind == EnemyKind::Xiaoyan) {
+        enemy = std::make_unique<SpeedAuraEnemy>(
+            spawnX, spawnY, enemyWidth, enemyHeight,
+            m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
+            spec.speed, spec.hp,
+            spec.auraRadius, spec.auraSpeedMult,
+            spec.kind, // 传递敌人类型
+            spec.animationFrames
+            );
+    } else {
+        enemy = std::make_unique<Enemy>(
+            spawnX, spawnY, enemyWidth, enemyHeight,
+            m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
+            spec.speed, spec.hp,
+            spec.kind, // 传递敌人类型
+            spec.animationFrames
+            );
+    }
 
-    // 4. 设置精英、BOSS、光环等特殊属性（示例：基础赋值，派生类需单独处理）
+    // 设置精英、BOSS属性
     enemy->setElite(spec.elite);
     enemy->setBoss(spec.boss);
 
-    // 5. 将敌人添加到管理器
+    // 添加到管理器
     m_entityManager->addEnemy(std::move(enemy));
 }
 
@@ -260,7 +272,7 @@ void GameWorldItem::playerShoot()
 
     // 计算子弹初始位置（玩家顶部正上方)
     qreal bulletX = playerPos.x();
-    qreal bulletY = playerPos.y() - playerHalfHeight - bulletSize / 2;
+    qreal bulletY = playerPos.y();
 
     // 创建子弹并添加到实体管理器
     auto bullet = std::make_unique<Bullet>(
