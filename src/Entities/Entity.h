@@ -1,71 +1,62 @@
-//
-// Created by wangs on 2025/10/12.
-//
-
 #ifndef ENTITY_H
 #define ENTITY_H
 
+#include <QObject>
 #include <QPointF>
 #include <QRectF>
-#include <QPixmap>
 #include <QPainter>
-#include <QObject>
 
-class GameMap; // 前向声明，避免循环引用
+class GameMap;
 
-class Entity : public QObject{
-    Q_OBJECT
-protected:
-    // --- 核心属性 ---
-    QPointF m_position;        // 位置：实体在地图上的精确坐标，是中心点
-    qreal m_width;             // 宽度：碰撞箱的宽度
-    qreal m_height;            // 高度：碰撞箱的高度
-    QRectF m_boundingBox;      // 碰撞箱：用于碰撞检测的矩形区域
-
-    // --- 物理与状态 ---
-    QPointF m_direction;       // 移动方向，是个向量，最好设置为模长为1
-    qreal m_speed;             // 移动速度：决定了实体每帧可以移动多远
-    bool m_isAlive;            // 生存状态
-
-
-    // --- 游戏世界交互 ---
-    GameMap* m_gameMapPtr;     // 指向游戏地图的指针，用于获取地图信息（如边界、障碍物）
-    int m_deltaTime;           // 帧间隔（毫秒）：用于确保游戏逻辑与帧率无关，这个要看他们窗口是怎么实现的
-
+class Entity : public QObject {
+Q_OBJECT
 public:
-
     Entity(qreal startX, qreal startY, qreal width, qreal height, GameMap* gameMap, int deltaTime);
-
-
     virtual ~Entity() = default;
 
-    // --- 每帧更新 ---
-
-    //每个实体都需要实现自己的`tick`函数，用于处理该帧的所有逻辑，
-
     virtual void tick() = 0;
-
-
     virtual void draw(QPainter* painter);
-
-    // --- 移动与位置 ---
-
     virtual void move();
 
-
+    void setPosition(qreal x, qreal y);
     void updateBoundingBox();
 
+    // —— 命中盒：返回“独立命中框”在世界坐标下的位置 —— //
+    virtual QRectF hitBox() const;
 
-    void setPosition(qreal x, qreal y);
+    // —— 提供设置命中框的接口（以中心为基准的局部坐标） —— //
+    // 例如：setHitRect(QRectF(-w/2, -h/2, w, h))
+    void setHitRect(const QRectF& localCenteredRect) { m_hitRect = localCenteredRect; }
 
-    // --- 状态获取 ---
-    [[nodiscard]] const QRectF& getBoundingBox() const;
-    [[nodiscard]] const QPointF& getPosition() const;
-    [[nodiscard]] qreal getSpeed() const;
-    [[nodiscard]] QPointF getDirection() const;
-    [[nodiscard]] bool isAlive() const;
-    [[nodiscard]] int getDeltaTime() const;
+    // 基本访问器（保持你们原有接口不变）
+    [[nodiscard]] const QRectF& getBoundingBox() const { return m_boundingBox; }
+    [[nodiscard]] const QPointF& getPosition()   const { return m_position; }
+    [[nodiscard]] qreal          getSpeed()      const { return m_speed; }
+    [[nodiscard]] QPointF        getDirection()  const { return m_direction; }
+    [[nodiscard]] bool           isAlive()       const { return m_isAlive; }
+    [[nodiscard]] int            getDeltaTime()  const { return m_deltaTime; }
 
+protected:
+    static QRectF makeCenteredRect(const QPointF& c, qreal w, qreal h) {
+        return QRectF(c.x() - w/2.0, c.y() - h/2.0, w, h);
+    }
+
+protected:
+    // —— 位置与外观（外接矩形：可含留白，仅用于显示/越界清理） —— //
+    QPointF m_position;   // 中心点
+    qreal   m_width;
+    qreal   m_height;
+    QRectF  m_boundingBox;
+
+    // —— 运动与状态 —— //
+    QPointF m_direction;
+    qreal   m_speed = 0;
+    bool    m_isAlive = true;
+    GameMap* m_gameMapPtr = nullptr;
+    int     m_deltaTime = 16; // ms
+
+    // —— 真实命中框（局部坐标、以中心为基准），只用于碰撞 —— //
+    QRectF  m_hitRect;
 };
 
-#endif
+#endif // ENTITY_H
