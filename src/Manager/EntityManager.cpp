@@ -137,3 +137,4 @@ void EntityManager::drawAll(QPainter* painter) {
 GameMap* EntityManager::map() const {
     return m_map;
 }
+//
