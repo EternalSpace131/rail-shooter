@@ -1,20 +1,18 @@
-//
-// Created by wangs on 2025/10/12.
-//
 #include "Entity.h"
 #include <QDebug>
+#include <GameLogic/GameMap.h>
 
 Entity::Entity(qreal startX, qreal startY, qreal width, qreal height, GameMap* gameMap, int deltaTime)
         : QObject(nullptr),
           m_position(startX, startY),
           m_width(width),
           m_height(height),
-          m_speed(0),
-          m_isAlive(true),
           m_gameMapPtr(gameMap),
           m_deltaTime(deltaTime)
 {
     updateBoundingBox();
+    // 默认把命中框设置为“略小于外观的矩形”（先给个保底值；具体角色会再覆盖/重置）
+    m_hitRect = QRectF(-m_width*0.40, -m_height*0.40, m_width*0.80, m_height*0.80);
 }
 
 void Entity::updateBoundingBox() {
@@ -22,12 +20,8 @@ void Entity::updateBoundingBox() {
 }
 
 void Entity::move() {
-    if (!m_gameMapPtr) {
-        qWarning("Entity::move(): m_gameMapPtr is null!");
-        return;
-    }
+    if (!m_gameMapPtr) return;
     if (m_speed == 0) return;
-
     const qreal dt = m_deltaTime / 1000.0;
     m_position += QPointF(m_direction.x() * m_speed * dt,
                           m_direction.y() * m_speed * dt);
@@ -36,7 +30,10 @@ void Entity::move() {
 
 void Entity::draw(QPainter* painter) {
     if (!painter) return;
-    painter->fillRect(m_boundingBox, Qt::gray);
+    // 默认不画贴图：由子类决定；这里给个“灰框占位”以防空
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(QColor(120,120,120));
+    painter->drawRect(m_boundingBox);
 }
 
 void Entity::setPosition(qreal x, qreal y) {
@@ -44,18 +41,8 @@ void Entity::setPosition(qreal x, qreal y) {
     updateBoundingBox();
 }
 
-// —— 新增：命中盒 ——
-// 默认：在外接矩形基础上做缩放（四周各收 20%），子类可覆写
 QRectF Entity::hitBox() const {
-    const qreal hw = m_width  * m_hitScaleX;
-    const qreal hh = m_height * m_hitScaleY;
-    return makeCenteredRect(m_position, hw, hh);
+    QRectF r = m_hitRect;
+    r.translate(m_position);
+    return r;
 }
-
-// --- Getters ---
-const QRectF& Entity::getBoundingBox() const { return m_boundingBox; }
-const QPointF& Entity::getPosition() const   { return m_position; }
-qreal  Entity::getSpeed() const              { return m_speed; }
-QPointF Entity::getDirection() const         { return m_direction; }
-bool   Entity::isAlive() const               { return m_isAlive; }
-int    Entity::getDeltaTime() const          { return m_deltaTime; }

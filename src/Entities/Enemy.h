@@ -1,14 +1,11 @@
-//
-// Created by Morgan on 25-10-13.
-//
-
 #ifndef ENEMY_H
 #define ENEMY_H
+
 #include "Entity.h"
 #include <QTimer>
 #include "EnemySpec.h"
 
-class EntityManager;// 前置声明，供 onKilled/onLeak 使用
+class EntityManager;
 
 class Enemy: public Entity{
 public:
@@ -17,34 +14,23 @@ public:
 
     EnemyKind getKind() const { return m_kind; }
 
-    // 每帧前清零（光环是“本帧生效”的暂态）
     void resetFrameBuffs();
-    // 供光环调用
     void addSpeedMult(qreal m);
     void addDefense(int v);
-    // 子类可覆写（施放光环）
-    virtual void applyAura(const std::vector<Enemy*>&/*allEnemies*/);
+    virtual void applyAura(const std::vector<Enemy*>&);
 
     void tick() override;
     void draw(QPainter* painter) override;
     void takeDamage(int damage);
 
-    // —— 命中盒：只覆盖“本体”，不包含光环 —— //
-    QRectF hitBox() const override {
-        // 敌人略紧：左右/上下各收约 18%
-        const qreal hw = m_width  * 0.82;
-        const qreal hh = m_height * 0.82;
-        return makeCenteredRect(m_position, hw, hh);
-    }
-
     // 钩子：死亡/触线
-    virtual void onKilled(EntityManager* /*mgr*/) { /* 默认无操作 */ }
-    virtual void onLeak  (EntityManager* /*mgr*/) { /* 默认无操作 */ }
+    virtual void onKilled(EntityManager*) {}
+    virtual void onLeak  (EntityManager*) {}
 
     bool isElite() const { return m_isElite; }
     bool isBoss()  const { return m_isBoss;  }
-    void setElite(bool elite) { m_isElite = elite; }
-    void setBoss (bool boss ) { m_isBoss  = boss;  }
+    void setElite(bool v){ m_isElite = v; }
+    void setBoss (bool v){ m_isBoss  = v; }
 
 private:
     EnemyKind m_kind;
@@ -58,6 +44,7 @@ private:
     QVector<QPixmap> m_animationFrames;
     int   m_currentFrameIndex = 0;
     QTimer m_animationTimer;
+
     void  loadAnimationFrames(const QStringList&);
 };
 
