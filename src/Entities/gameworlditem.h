@@ -6,6 +6,7 @@
 #include <memory> // for std::unique_ptr
 #include <QFont>
 #include "Manager/EntityManager.h"
+#include<random>
 
 // 前向声明 (Forward declare)
 // 我们不需要在这里 #include 它们的 .h 文件，可以加快编译速度
@@ -51,7 +52,19 @@ private:
     void updatePlayerDirection();
     void spawnEnemy();
     void playerShoot();
-    const int m_fireRate;            // 发射间隔（毫秒，控制自动发射频率，默认500ms/发）
+
+    // ===== 强化系统：状态 & 行为 =====
+    void bindRewardCallback();  //绑定EntityManager::setOnReward
+    void grantRandomUpgrade();  //发放一项随机强化
+    void showUpgradeToast(const QString& text); // 可选：小提示（先占位）
+
+    int   m_bulletDamage = 1;        // 子弹基础伤害，默认1
+    int   m_spreadLevel  = 0;        // 散射等级（0=直射；1=3发；2=5发…）
+
+
+    std::mt19937 m_rng{std::random_device{}()}; // 用于随机选强化
+
+    int m_fireRate;            // 发射间隔（毫秒，控制自动发射频率，默认500ms/发）
     int m_currentCooldown;           // 当前剩余冷却时间
 
     // --- 你的游戏逻辑对象 ---
