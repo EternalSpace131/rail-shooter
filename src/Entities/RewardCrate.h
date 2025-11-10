@@ -13,7 +13,6 @@ class RewardCrate : public Enemy{
 public:
   RewardCrate(qreal x, qreal y, qreal width, qreal height,GameMap* map,int deltaTime,qreal speed,int hp,int reward,EnemyKind kind,const QStringList& animFrames);
 
-  void draw(QPainter *painter) override;
 
   //被打掉：发放奖励，不走普通击杀逻辑
   void onKilled(EntityManager* mgr) override;

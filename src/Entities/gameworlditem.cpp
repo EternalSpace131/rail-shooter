@@ -10,6 +10,8 @@
 #include <QRandomGenerator>
 #include "EnemySpec.h"
 #include "AuraEnemies.h"
+#include"RewardCrate.h"
+#include<QtMath>
 
 GameWorldItem::GameWorldItem(qreal mapWidth, qreal mapHeight, QGraphicsItem* parent)
         : QGraphicsObject(parent),
@@ -28,6 +30,9 @@ GameWorldItem::GameWorldItem(qreal mapWidth, qreal mapHeight, QGraphicsItem* par
 
     // --- 2. 创建你的 EntityManager ---
     m_entityManager = std::make_unique<EntityManager>(m_gameMap.get());
+
+    //绑定奖励回调（强化系统入口）
+    bindRewardCallback();
 
     // --- 3. 创建并添加玩家 ---
     qreal playerX = m_gameMap->bounds().center().x();
@@ -53,6 +58,49 @@ QRectF GameWorldItem::boundingRect() const
 {
     return m_gameMap->bounds();
 }
+
+// =====强化系统实现=====
+void GameWorldItem::bindRewardCallback() {
+    if(!m_entityManager) {
+        return;
+    }
+    // 当奖励箱被击破，EntityManager::grantReward(amount) 会触发这里
+    m_entityManager->setOnReward([this](int amount) {
+       Q_UNUSED(amount);
+        grantRandomUpgrade();
+    });
+}
+
+void GameWorldItem::grantRandomUpgrade() {
+    //0:射速;1:伤害;2:散射;
+    std::uniform_int_distribution<int> dist(0,2);
+    const int pick=dist(m_rng);
+    switch (pick) {
+        case 0: {
+            const int old=m_fireRate;
+            m_fireRate=std::max(120,int(m_fireRate*0.85));
+            showUpgradeToast(QStringLiteral("强化：射速提升  (%1→%2 ms)").arg(old).arg(m_fireRate));
+            break;
+        }
+        case 1: {
+            ++m_bulletDamage;
+            showUpgradeToast(QStringLiteral("强化：伤害 +1  (当前=%1)").arg(m_bulletDamage));
+            break;
+        }
+        case 2: {
+            m_spreadLevel = std::min(m_spreadLevel + 1, 3); // 上限3级：最多 7 发
+            showUpgradeToast(QStringLiteral("强化：散射 +1  (当前=%1)").arg(m_spreadLevel));
+            break;
+        }
+        default:break;
+    }
+}
+
+void GameWorldItem::showUpgradeToast(const QString &text) {
+    // 这里先占位：如需视觉提示，可在 drawAll 里画文本，或用 QGraphicsSimpleTextItem 短暂显示。
+    qDebug() << text;
+}
+
 
 void GameWorldItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
 {
@@ -124,6 +172,9 @@ void GameWorldItem::spawnEnemy()
     }
     const EnemySpec& spec = enemyBook[targetIndex];
 
+    // 奖励箱作为“魔丸”变体的概率（可调）
+    static constexpr double kCrateAsMowanChance = 1.00; // 20%
+
     // —— 位置与体型 ——
     const QRectF& bounds = m_gameMap->bounds();
     qreal enemyWidth  = spec.body.width();
@@ -137,7 +188,24 @@ void GameWorldItem::spawnEnemy()
 
     // —— 根据类型创建（光环怪用 Aura 子类）——
     std::unique_ptr<Enemy> enemy;
-    if (spec.kind == EnemyKind::Penguin) {
+    if(spec.kind == EnemyKind::Mowan&&QRandomGenerator::global()->generateDouble()<kCrateAsMowanChance) {
+        const qreal crateSpeed=spec.speed;
+
+        const int crateHp=1;
+
+        const int rewardPts=20;
+
+        enemy = std::make_unique<RewardCrate>(
+            spawnX, spawnY,
+            enemyWidth, enemyHeight,
+            m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
+            crateSpeed, crateHp, rewardPts,
+            /*沿用当前 spec 外观信息，保持同一波次的风格一致*/
+            spec.kind,
+            spec.animationFrames
+       );
+
+    }else if (spec.kind == EnemyKind::Penguin) {
         enemy = std::make_unique<DefenseAuraEnemy>(
                 spawnX, spawnY, enemyWidth, enemyHeight,
                 m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
@@ -245,24 +313,56 @@ void GameWorldItem::updatePlayerDirection()
     }
 }
 
-void GameWorldItem::playerShoot()
-{
+void GameWorldItem::playerShoot(){
     if (!m_player) return;
 
-    const QPointF playerPos = m_player->getPosition();
-    const qreal bulletSize   = 80;
-    const qreal bulletSpeed  = 600;
-    const QPointF bulletDir(0, -1);
-    const int bulletDamage   = 1;
+    // const QPointF playerPos = m_player->getPosition();
+    // const qreal bulletSize   = 80;
+    // const qreal bulletSpeed  = 600;
+    // const QPointF bulletDir(0, -1);
+    // const int bulletDamage   = 1;
+    //
+    // auto bullet = std::make_unique<Bullet>(
+    //         playerPos.x(), playerPos.y(),
+    //         bulletSize, bulletSize,
+    //         m_entityManager->map(),
+    //         m_player->getDeltaTime(),
+    //         bulletSpeed,
+    //         bulletDir,
+    //         bulletDamage
+    // );
+    // m_entityManager->addBullet(std::move(bullet));
 
-    auto bullet = std::make_unique<Bullet>(
+    const QPointF playerPos = m_player->getPosition();
+    const qreal bulletSize = 80;
+    const qreal bulletSpeed  = 600;
+    const int dmg=m_bulletDamage;
+
+    //基础方向：正上
+    auto makeDir = [](qreal deg) {
+        const qreal rad = qDegreesToRadians(deg);
+        return QPointF(qSin(rad)*1.0, -qCos(rad)*1.0);
+    };
+
+    // 按散射等级发射多枚子弹：level=0 → 0°；1 → 0/±6°；2 → 0/±6/±12°；3 → 0/±6/±12/±18°
+    QVector<qreal> angles;
+    angles.push_back(0.0);
+    const qreal step = 6.0;
+    for(int i=1; i<=m_spreadLevel;i++) {
+        angles.push_back(+i*step);
+        angles.push_back(-i*step);
+    }
+
+    for(qreal a:angles) {
+        auto b = std::make_unique<Bullet>(
             playerPos.x(), playerPos.y(),
             bulletSize, bulletSize,
             m_entityManager->map(),
             m_player->getDeltaTime(),
             bulletSpeed,
-            bulletDir,
-            bulletDamage
-    );
-    m_entityManager->addBullet(std::move(bullet));
+            makeDir(a),
+            dmg
+        );
+        m_entityManager->addBullet(std::move(b));
+    }
 }
