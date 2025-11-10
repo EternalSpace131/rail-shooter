@@ -36,5 +36,21 @@
         <file>assets/images/character/xiaoyan/xiaoyan4.png</file>
         <file>assets/images/character/xiaoyan/xiaoyan5.png</file>
         <file>data/ranking.json</file>
+        <file>assets/images/brochureImg/brochure_bg.jpg</file>
+        <file>assets/images/brochureImg/kobe.png</file>
+        <file>assets/images/brochureImg/locked.png</file>
+        <file>assets/images/brochureImg/nezha.png</file>
+        <file>assets/images/brochureImg/nju.png</file>
+        <file>assets/images/brochureImg/penguin.png</file>
+        <file>assets/images/brochureImg/songhao.png</file>
+        <file>assets/images/brochureImg/wujing.png</file>
+        <file>assets/images/brochureImg/xiaoyan.png</file>
+        <file>assets/images/brochureButton/kobe.png</file>
+        <file>assets/images/brochureButton/Ne Zha.png</file>
+        <file>assets/images/brochureButton/nju.png</file>
+        <file>assets/images/brochureButton/penguin.png</file>
+        <file>assets/images/brochureButton/songhao.png</file>
+        <file>assets/images/brochureButton/wujing.png</file>
+        <file>assets/images/brochureButton/xiaoyan.png</file>
     </qresource>
 </RCC>
