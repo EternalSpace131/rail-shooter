@@ -10,6 +10,7 @@
 #include <QRandomGenerator>
 #include "EnemySpec.h"
 #include "AuraEnemies.h"
+#include"RewardCrate.h"
 
 GameWorldItem::GameWorldItem(qreal mapWidth, qreal mapHeight, QGraphicsItem* parent)
         : QGraphicsObject(parent),
@@ -124,6 +125,9 @@ void GameWorldItem::spawnEnemy()
     }
     const EnemySpec& spec = enemyBook[targetIndex];
 
+    // 奖励箱作为“魔丸”变体的概率（可调）
+    static constexpr double kCrateAsMowanChance = 1.00; // 20%
+
     // —— 位置与体型 ——
     const QRectF& bounds = m_gameMap->bounds();
     qreal enemyWidth  = spec.body.width();
@@ -137,7 +141,24 @@ void GameWorldItem::spawnEnemy()
 
     // —— 根据类型创建（光环怪用 Aura 子类）——
     std::unique_ptr<Enemy> enemy;
-    if (spec.kind == EnemyKind::Penguin) {
+    if(spec.kind == EnemyKind::Mowan&&QRandomGenerator::global()->generateDouble()<kCrateAsMowanChance) {
+        const qreal crateSpeed=spec.speed;
+
+        const int crateHp=1;
+
+        const int rewardPts=20;
+
+        enemy = std::make_unique<RewardCrate>(
+            spawnX, spawnY,
+            enemyWidth, enemyHeight,
+            m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
+            crateSpeed, crateHp, rewardPts,
+            /*沿用当前 spec 外观信息，保持同一波次的风格一致*/
+            spec.kind,
+            spec.animationFrames
+       );
+
+    }else if (spec.kind == EnemyKind::Penguin) {
         enemy = std::make_unique<DefenseAuraEnemy>(
                 spawnX, spawnY, enemyWidth, enemyHeight,
                 m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
