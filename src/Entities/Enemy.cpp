@@ -56,9 +56,10 @@ void Enemy::tick() {
     // —— 过线消失（方案B）：到达保卫线就标记死亡，交由管理器统一清理 —— //
     // 注意：这里拿不到 EntityManager 指针，所以不在此处调用 onLeak(...)。
     // 如果你们需要在漏怪时触发扣分/音效，请把那部分留在 EntityManager 里做。
-    if (m_gameMapPtr && getBoundingBox().bottom() >= m_gameMapPtr->goalLineY()) {
-        m_isAlive = false;
-    }
+    // 删掉这段逻辑，避免敌人自主标记死亡
+    // if (m_gameMapPtr && getBoundingBox().bottom() >= m_gameMapPtr->goalLineY()) {
+    //     m_isAlive = false;
+    // }
 }
 
 void Enemy::draw(QPainter* painter) {

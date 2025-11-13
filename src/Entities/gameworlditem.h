@@ -37,6 +37,7 @@ public:
 
     EntityManager* getEntityManager() const { return m_entityManager.get(); }
 
+    void onGameOver();
 protected:
     // --- 键盘输入事件 ---
     void keyPressEvent(QKeyEvent *event) override;

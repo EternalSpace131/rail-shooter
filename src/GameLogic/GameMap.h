@@ -16,6 +16,10 @@ public:
   [[nodiscard]]qreal goalLineY() const;//获取线的坐标
 
   [[nodiscard]]bool contains(const QRectF& r) const;//简单的包容关系判断
+  // 新增：判断实体的世界坐标命中框是否越过底线
+  [[nodiscard]]bool isBelowGoalLine(const QRectF& worldHitBox) const {
+    return worldHitBox.bottom() >= m_goalLineY;
+  }
 
 private:
   QRectF m_bounds;//边界
