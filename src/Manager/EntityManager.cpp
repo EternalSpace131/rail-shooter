@@ -138,3 +138,14 @@ GameMap* EntityManager::map() const {
     return m_map;
 }
 //
+
+// EntityManager.cpp 中实现
+bool EntityManager::hasEnemyBelowGoalLine(GameMap* gameMap) const {
+    for (const auto& enemy : enemies) {
+        QRectF enemyHitBox = enemy->hitBox();
+        if (gameMap->isBelowGoalLine(enemyHitBox)) {
+            return true;
+        }
+    }
+    return false;
+}

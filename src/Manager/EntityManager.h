@@ -8,7 +8,6 @@
 #include <Entities\Entity.h>
 #include<vector>
 #include<memory>
-
 class Player;
 class Enemy;
 class Bullet;
@@ -40,8 +39,9 @@ public:
 
     // —— 统一绘制 ——
     void drawAll(QPainter* painter);
-
+    bool hasEnemyBelowGoalLine(GameMap* gameMap)const;
     [[nodiscard]]GameMap* map() const;
+
 
 private:
     // —— 小工具：条件删除 ——

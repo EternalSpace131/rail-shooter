@@ -132,6 +132,14 @@ void GameWorldItem::gameTick()
 {
     if (!m_player) return;
 
+    m_entityManager->tickAll();
+
+    // 2) 立即检测是否有敌人越界 → 优先触发游戏结束
+    if (m_entityManager->hasEnemyBelowGoalLine(m_gameMap.get())) {
+        onGameOver();
+        return;
+    }
+
     // 1) 自动冷却与射击
     m_currentCooldown -= m_player->getDeltaTime();
     if (m_currentCooldown < 0) m_currentCooldown = 0;
@@ -148,7 +156,6 @@ void GameWorldItem::gameTick()
     }
 
     // 3) 运行所有游戏逻辑并重绘
-    m_entityManager->tickAll();
     update();
 }
 
@@ -365,4 +372,47 @@ void GameWorldItem::playerShoot(){
         );
         m_entityManager->addBullet(std::move(b));
     }
+}
+
+void GameWorldItem::onGameOver() {
+    // 停止游戏循环（安全检查）
+    if (m_gameTimer && m_gameTimer->isActive()) {
+        m_gameTimer->stop();
+    }
+
+    // 半透明背景（突出文字，不设层级，默认在底层）
+    QGraphicsRectItem* background = new QGraphicsRectItem(boundingRect(), this);
+    background->setBrush(QColor(0, 0, 0, 150)); // 黑色半透明
+    background->setPen(Qt::NoPen); // 仅去掉边框，不涉及文字描边
+
+    // 游戏结束标题（无描边，无层级设置）
+    QGraphicsTextItem* titleText = new QGraphicsTextItem("游戏结束！", this);
+    QFont titleFont("Microsoft YaHei", 30, QFont::Bold);
+    titleText->setFont(titleFont);
+    titleText->setDefaultTextColor(Qt::white); // 白色标题，无黑色描边
+
+    // 最终分数（无描边，无层级设置）
+    int finalScore = m_entityManager ? m_entityManager->getTotalScore() : 0;
+    QGraphicsTextItem* scoreText = new QGraphicsTextItem(QString("最终分数：%1").arg(finalScore), this);
+    QFont scoreFont("Microsoft YaHei", 22, QFont::Bold);
+    scoreText->setFont(scoreFont);
+    scoreText->setDefaultTextColor(QColor(50, 180, 255)); // 亮蓝色分数
+
+    // 居中布局（仅保留核心位置计算）
+    QRectF titleRect = titleText->boundingRect();
+    QRectF scoreRect = scoreText->boundingRect();
+
+    // 整体垂直居中，标题在上，分数在下，间距20px
+    qreal totalHeight = titleRect.height() + 20 + scoreRect.height();
+    qreal startY = boundingRect().center().y() - totalHeight / 2;
+
+    // 水平居中
+    titleText->setPos(
+        boundingRect().center().x() - titleRect.width() / 2,
+        startY
+    );
+    scoreText->setPos(
+        boundingRect().center().x() - scoreRect.width() / 2,
+        startY + titleRect.height() + 20
+    );
 }
