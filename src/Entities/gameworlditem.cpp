@@ -7,11 +7,17 @@
 #include <QPainter>
 #include <QTimer>
 #include <QDebug>
+#include <QLabel>
 #include <QRandomGenerator>
 #include "EnemySpec.h"
 #include "AuraEnemies.h"
 #include"RewardCrate.h"
 #include<QtMath>
+#include<QGraphicsTextItem>
+#include<QPropertyAnimation>
+#include<QParallelAnimationGroup>
+#include<QEasingCurve>
+#include <QGraphicsScene>
 
 GameWorldItem::GameWorldItem(qreal mapWidth, qreal mapHeight, QGraphicsItem* parent)
         : QGraphicsObject(parent),
@@ -97,8 +103,50 @@ void GameWorldItem::grantRandomUpgrade() {
 }
 
 void GameWorldItem::showUpgradeToast(const QString &text) {
-    // 这里先占位：如需视觉提示，可在 drawAll 里画文本，或用 QGraphicsSimpleTextItem 短暂显示。
-    qDebug() << text;
+    //创建文本项
+    auto* label=new QGraphicsTextItem(text);
+    QFont f(QStringLiteral("Microsoft YaHei"));
+    f.setPointSize(14);
+    f.setWeight(QFont::Bold);
+    label->setFont(f);
+    label->setDefaultTextColor(QColor(255,240,120));
+    label->setZValue(1000);
+
+    //放到玩家头顶
+    const QPointF p=m_player->getPosition();
+    const QRectF br=label->boundingRect();
+    const qreal startX=p.x()-br.width()/2.0;
+    const qreal startY=p.y()-100.0;
+    label->setPos(startX,startY);
+
+    scene()->addItem(label);
+
+    // 做一个“向上漂 + 淡出”的并行动画
+    // 动 y：上移 40px
+    auto* animPos = new QPropertyAnimation(label,"y");
+    animPos->setDuration(700);
+    animPos->setStartValue(label->y());
+    animPos->setEndValue(label->y()-40.0);
+    animPos->setEasingCurve(QEasingCurve::OutQuad);
+
+    //动透明度:1.0->0.0
+    auto* animOpacity=new QPropertyAnimation(label,"opacity");
+    animOpacity->setDuration(700);
+    animOpacity->setStartValue(1.0);
+    animOpacity->setEndValue(0.0);
+
+    auto* group=new QParallelAnimationGroup(label);//以label为父，方便统一销毁
+    group->addAnimation(animPos);
+    group->addAnimation(animOpacity);
+
+    //结束后自动删除
+    QObject::connect(group, &QParallelAnimationGroup::finished, label,[label]() {
+        if(label->scene()) {
+            label->scene()->removeItem(label);
+            label->deleteLater();
+        }
+    });
+    group->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
 
