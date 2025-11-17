@@ -21,6 +21,9 @@ public:
 
     void tick() override;
     void draw(QPainter* painter) override;
+
+    void setSpawnInvulUntilEnter(bool on) ;
+    bool canBeDamaged() const;
     void takeDamage(int damage);
 
     // 钩子：死亡/触线
@@ -46,6 +49,9 @@ private:
     QTimer m_animationTimer;
 
     void  loadAnimationFrames(const QStringList&);
+
+    bool m_hasEnteredScreen = false;//是否已进入可视区域
+    bool m_spawnInvulUntilEnter= true;//是否启用“进场前无敌”
 };
 
 #endif //ENEMY_H
