@@ -77,6 +77,18 @@ void GameWorldItem::bindRewardCallback() {
     });
 }
 
+void GameWorldItem::updateTimedUpgrades(int deltaMs) {
+    if(m_spreadTimeLeftMs>0) {
+        m_spreadTimeLeftMs -= deltaMs;
+        if(m_spreadTimeLeftMs<=0) {
+            m_spreadTimeLeftMs = 0;
+            m_spreadLevel=0;
+            showUpgradeToast(QStringLiteral("散射结束"));
+        }
+    }
+}
+
+
 void GameWorldItem::grantRandomUpgrade() {
     //0:射速;1:伤害;2:散射;
     std::uniform_int_distribution<int> dist(0,2);
@@ -94,8 +106,11 @@ void GameWorldItem::grantRandomUpgrade() {
             break;
         }
         case 2: {
-            m_spreadLevel = std::min(m_spreadLevel + 1, 3); // 上限3级：最多 7 发
-            showUpgradeToast(QStringLiteral("强化：散射 +1  (当前=%1)").arg(m_spreadLevel));
+            constexpr int kSpreadDurationMs=8000;//8秒
+            m_spreadLevel=std::min(m_spreadLevel+1,3);
+            m_spreadTimeLeftMs=kSpreadDurationMs; //刷新倒计时
+            showUpgradeToast(QStringLiteral("强化：散射 +1  (当前=%1，持续%2s)")
+                             .arg(m_spreadLevel).arg(kSpreadDurationMs/1000));
             break;
         }
         default:break;
@@ -195,6 +210,9 @@ void GameWorldItem::gameTick()
         playerShoot();
         m_currentCooldown = m_fireRate;
     }
+
+    //限时强化倒计时
+    updateTimedUpgrades(m_player->getDeltaTime());
 
     // 2) 刷怪计时
     m_enemySpawnCounter += DEFAULT_DELTA_TIME_MS;
