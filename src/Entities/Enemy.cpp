@@ -25,6 +25,15 @@ Enemy::Enemy(qreal x, qreal y, qreal width, qreal height, GameMap* map, int delt
     m_animationTimer.start(100);
 }
 
+void Enemy::setSpawnInvulUntilEnter(bool on) {
+    m_spawnInvulUntilEnter = on;
+}
+
+bool Enemy::canBeDamaged() const {
+    return !m_spawnInvulUntilEnter||m_hasEnteredScreen;
+}
+
+
 void Enemy::loadAnimationFrames(const QStringList& fpaths) {
     m_animationFrames.clear();
     for (const auto& p : fpaths) {
@@ -52,6 +61,13 @@ void Enemy::tick() {
     const qreal dt = m_deltaTime / 1000.0;
     m_position += QPointF(0, m_speed * m_speedFrameMult * dt);
     updateBoundingBox();
+    //第一次进入可见区域
+    if (!m_hasEnteredScreen) {
+        const QRectF& view =m_gameMapPtr->bounds();
+        if(view.intersects(getBoundingBox())) {
+            m_hasEnteredScreen = true;
+        }
+    }
 
     // —— 过线消失（方案B）：到达保卫线就标记死亡，交由管理器统一清理 —— //
     // 注意：这里拿不到 EntityManager 指针，所以不在此处调用 onLeak(...)。
@@ -87,6 +103,9 @@ void Enemy::draw(QPainter* painter) {
 }
 
 void Enemy::takeDamage(int damage) {
+    if(!canBeDamaged()) {
+        return;
+    }
     const int real = std::max(1, damage - (m_defenseBase + m_defenseFrameAdd));
     m_hp -= real;
     if (m_hp <= 0) m_isAlive = false;

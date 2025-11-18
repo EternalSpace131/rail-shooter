@@ -60,10 +60,12 @@ private:
     void showUpgradeToast(const QString& text); // 可选：小提示（先占位）
 
     int   m_bulletDamage = 1;        // 子弹基础伤害，默认1
-    int   m_spreadLevel  = 0;        // 散射等级（0=直射；1=3发；2=5发…）
-
+    int   m_spreadLevel  = 0;// 散射等级（0=直射；1=3发；2=5发…）
+    int   m_spreadTimeLeftMs=0;
 
     std::mt19937 m_rng{std::random_device{}()}; // 用于随机选强化
+
+    void updateTimedUpgrades(int deltaMs);
 
     int m_fireRate;            // 发射间隔（毫秒，控制自动发射频率，默认500ms/发）
     int m_currentCooldown;           // 当前剩余冷却时间
