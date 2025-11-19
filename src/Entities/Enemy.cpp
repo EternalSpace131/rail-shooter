@@ -94,12 +94,6 @@ void Enemy::draw(QPainter* painter) {
         painter->setPen(Qt::NoPen);
         painter->drawRect(target);
     }
-
-    // 如需绘制光环，仅在此处绘制，不影响 hitRect
-    // 例如：
-    // painter->setPen(QPen(QColor(0,255,0,80), 2));
-    // painter->setBrush(Qt::NoBrush);
-    // painter->drawEllipse(m_position, haloR, haloR);
 }
 
 void Enemy::takeDamage(int damage) {

@@ -1,21 +1,15 @@
 #include <QApplication>
 #include <QWidget>
 #include "Core/beginscene.h"
+#include <QSoundEffect>
+#include <Manager/musicmanager.h>
+#include <QResource>
+#include <QFile>
 int main(int argc, char *argv[]) {
 
     QApplication app(argc, argv);
 
-
-    // QWidget window;
-
-
-    // window.setWindowTitle("Qt窗口创建成功!");
-    // window.resize(400, 300);
-
-
-    // window.show();
-
-    // return QApplication::exec();
+    MusicManager::getInstance()->playMusic(":/assets/sounds/Music/bgm.wav");
 
     beginScene w;
 
