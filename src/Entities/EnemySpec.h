@@ -25,12 +25,15 @@ struct EnemySpec {
     qreal auraRadius=0; //像素
     qreal auraSpeedMult=1; //速度乘子
     int auraDefenceAdd=0;  //防御加值
+    int minScoreToAppear; //到了这个分数之后才会出现
 
     // 动画资源路径
     QStringList animationFrames;
 
     //分数
     int score;
+
+    int wight=1;
 
     //出场音效
     QString spawnSound;

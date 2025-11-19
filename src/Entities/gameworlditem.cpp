@@ -20,14 +20,14 @@
 #include <QGraphicsScene>
 
 GameWorldItem::GameWorldItem(qreal mapWidth, qreal mapHeight, QGraphicsItem* parent)
-        : QGraphicsObject(parent),
-          m_player(nullptr),
-          m_moveLeft(false),
-          m_moveRight(false),
-          m_enemySpawnCounter(0),
-          m_shootCooldownCounter(0),
-          m_fireRate(500),
-          m_currentCooldown(0)
+    : QGraphicsObject(parent),
+    m_player(nullptr),
+    m_moveLeft(false),
+    m_moveRight(false),
+    m_enemySpawnCounter(0),
+    m_shootCooldownCounter(0),
+    m_fireRate(500),
+    m_currentCooldown(0)
 {
     // --- 1. 创建你的 GameMap ---
     QRectF mapBounds(0, 0, mapWidth, mapHeight);
@@ -72,7 +72,7 @@ void GameWorldItem::bindRewardCallback() {
     }
     // 当奖励箱被击破，EntityManager::grantReward(amount) 会触发这里
     m_entityManager->setOnReward([this](int amount) {
-       Q_UNUSED(amount);
+        Q_UNUSED(amount);
         grantRandomUpgrade();
     });
 }
@@ -94,26 +94,26 @@ void GameWorldItem::grantRandomUpgrade() {
     std::uniform_int_distribution<int> dist(0,2);
     const int pick=dist(m_rng);
     switch (pick) {
-        case 0: {
-            const int old=m_fireRate;
-            m_fireRate=std::max(120,int(m_fireRate*0.85));
-            showUpgradeToast(QStringLiteral("强化：射速提升  (%1→%2 ms)").arg(old).arg(m_fireRate));
-            break;
-        }
-        case 1: {
-            ++m_bulletDamage;
-            showUpgradeToast(QStringLiteral("强化：伤害 +1  (当前=%1)").arg(m_bulletDamage));
-            break;
-        }
-        case 2: {
-            constexpr int kSpreadDurationMs=8000;//8秒
-            m_spreadLevel=std::min(m_spreadLevel+1,3);
-            m_spreadTimeLeftMs=kSpreadDurationMs; //刷新倒计时
-            showUpgradeToast(QStringLiteral("强化：散射 +1  (当前=%1，持续%2s)")
+    case 0: {
+        const int old=m_fireRate;
+        m_fireRate=std::max(120,int(m_fireRate*0.85));
+        showUpgradeToast(QStringLiteral("强化：射速提升  (%1→%2 ms)").arg(old).arg(m_fireRate));
+        break;
+    }
+    case 1: {
+        ++m_bulletDamage;
+        showUpgradeToast(QStringLiteral("强化：伤害 +1  (当前=%1)").arg(m_bulletDamage));
+        break;
+    }
+    case 2: {
+        constexpr int kSpreadDurationMs=8000;//8秒
+        m_spreadLevel=std::min(m_spreadLevel+1,3);
+        m_spreadTimeLeftMs=kSpreadDurationMs; //刷新倒计时
+        showUpgradeToast(QStringLiteral("强化：散射 +1  (当前=%1，持续%2s)")
                              .arg(m_spreadLevel).arg(kSpreadDurationMs/1000));
-            break;
-        }
-        default:break;
+        break;
+    }
+    default:break;
     }
 }
 
@@ -214,12 +214,39 @@ void GameWorldItem::gameTick()
     //限时强化倒计时
     updateTimedUpgrades(m_player->getDeltaTime());
 
-    // 2) 刷怪计时
-    m_enemySpawnCounter += DEFAULT_DELTA_TIME_MS;
-    if (m_enemySpawnCounter >= ENEMY_SPAWN_INTERVAL_MS) {
-        spawnEnemy();
-        m_enemySpawnCounter = 0;
+    // --- 【新增或修改：检查 BOSS 状态】 ---
+
+    // 更新 BOSS 是否在场的状态
+    // 如果 EntityManager 中没有 BOSS 且我们之前认为 BOSS 在场，则 BOSS 被击败。
+    if (m_isBossOnScreen && !m_entityManager->hasBoss()) {
+        m_isBossOnScreen = false;
+        showUpgradeToast(QStringLiteral("BOSS 击败！"));
     }
+
+    // 2) 刷怪计时
+    // 如果 BOSS 在场，或者当前分数是 BOSS 分数点（防止 BOSS 刷出前刷小怪），暂停小怪生成。
+    const int currentScore = m_entityManager->getTotalScore();
+    const bool isBossScorePoint = (currentScore > 0 && currentScore % 1000 <= 90);
+
+    if (m_isBossOnScreen || isBossScorePoint) {
+        // 如果 BOSS 在场或即将生成 BOSS，则重置计时器，暂停小怪生成
+        m_enemySpawnCounter = 0;
+
+        // 如果是 BOSS 分数点且 BOSS 不在场，强制刷 BOSS
+        if (isBossScorePoint && !m_isBossOnScreen && currentScore > m_lastBossScore) {
+            spawnEnemy(); // 立即尝试生成 BOSS
+            m_lastBossScore = currentScore;
+        }
+
+    } else {
+        // 正常刷小怪计时
+        m_enemySpawnCounter += DEFAULT_DELTA_TIME_MS;
+        if (m_enemySpawnCounter >= ENEMY_SPAWN_INTERVAL_MS) {
+            spawnEnemy();
+            m_enemySpawnCounter = 0;
+        }
+    }
+    // ------------------------------------
 
     // 3) 运行所有游戏逻辑并重绘
     update();
@@ -241,32 +268,121 @@ void GameWorldItem::playSpawnSound(const QString& soundPath)
     });
 }
 
+
 void GameWorldItem::spawnEnemy()
 {
+    // 获取当前游戏分数
+    const int currentScore = m_entityManager->getTotalScore();
     //播放出场音乐的概率
     double playMusic = 0.1;
+
+    // --- 1. 根据分数计算当前的难度等级 ---
+    // 每 300 分提升一个难度等级
+    const int scoreLevel = currentScore / 300;
 
     // 敌人字典（含名字、速度、体型、是否光环等）
     auto enemyBook = getEnemyBook();
     if (enemyBook.empty()) return;
 
-    // —— 权重抽样（保持原有逻辑）——
+    const bool isBossScorePoint = (currentScore > 900 && currentScore % 1000 <= 90 );
+
+    // 只有当：是BOSS分数点 AND BOSS当前不在场 AND 这个分数的BOSS还没刷过
+    if (isBossScorePoint && !m_isBossOnScreen && currentScore > m_lastBossScore) {
+
+        // 1. 在字典中查找 NJUboss 的数据
+        const EnemySpec* bossSpecPtr = nullptr;
+        for (const auto& s : enemyBook) {
+            if (s.kind == EnemyKind::NJUboss) { // 找到 BOSS 类型
+                bossSpecPtr = &s;
+                break;
+            }
+        }
+
+        // 2. 如果找到了 BOSS 数据，开始生成
+        if (bossSpecPtr) {
+            const EnemySpec& bossSpec = *bossSpecPtr;
+
+            // 计算居中位置
+            const QRectF& bounds = m_gameMap->bounds();
+            qreal enemyWidth  = bossSpec.body.width();
+            qreal enemyHeight = bossSpec.body.height();
+            qreal spawnX = bounds.center().x();
+            qreal spawnY = bounds.top() - enemyHeight / 2.0;
+
+            // 创建实体
+            std::unique_ptr<Enemy> boss = std::make_unique<Enemy>(
+                spawnX, spawnY, enemyWidth, enemyHeight,
+                m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
+                bossSpec.speed, bossSpec.hp,
+                bossSpec.kind,
+                bossSpec.animationFrames
+                );
+
+            boss->setElite(true);
+            boss->setBoss(true);
+
+            boss->setObjectName("nju(BOSS)");
+
+            // 设置 BOSS 专属命中框 (这里直接用您之前代码里的参数 0.68)
+            qreal w = enemyWidth * 0.68;
+            qreal h = enemyHeight * 0.68;
+            boss->setHitRect(QRectF(-w/2.0, -h/2.0, w, h));
+
+            // 加入管理器
+            m_entityManager->addEnemy(std::move(boss));
+
+            // 更新状态：BOSS 已在场，记录本次分数
+            m_isBossOnScreen = true;
+            m_lastBossScore = currentScore;
+
+            return;
+        }
+    }
+    // --- 2. 动态调整权重（核心改动） ---
+    // 根据当前难度等级，只考虑“已解锁”的怪物，并提升它们的权重
+
+    QVector<EnemySpec> availableEnemies;
+    for (auto& spec : enemyBook) {
+        // 【假设：minScoreToAppear 是 EnemySpec 中的一个字段】
+        // 只有当怪物所需的最低分数等级低于或等于当前分数等级时，才加入候选列表
+        if (spec.minScoreToAppear <= scoreLevel) {
+            // 示例：动态增强权重
+            // 让更高级的怪物有更高的出现几率（例如，每多一个等级，权重加倍）
+            int adjustedWeight = spec.wight * (1 + (scoreLevel - spec.minScoreToAppear));
+
+            // 创建一个新的 Spec 副本用于抽样，只修改权重
+            EnemySpec weightedSpec = spec;
+            weightedSpec.wight = adjustedWeight;
+            availableEnemies.append(weightedSpec);
+        }
+    }
+
+    if (availableEnemies.empty()) {
+        // 如果没有可生成的怪物，直接返回（理论上不应该发生）
+        return;
+    }
+
+    // —— 权重抽样（使用调整后的列表）——
     int totalWeight = 0;
     QVector<int> weightCumulative;
-    for (const auto& spec : enemyBook) {
-        totalWeight += spec.weight;
+    for (const auto& spec : availableEnemies) {
+        totalWeight += spec.wight;
         weightCumulative.append(totalWeight);
     }
+
     int randomValue = QRandomGenerator::global()->bounded(totalWeight);
     int targetIndex = 0;
     for (int i = 0; i < weightCumulative.size(); ++i) {
         if (randomValue < weightCumulative[i]) { targetIndex = i; break; }
     }
-    const EnemySpec& spec = enemyBook[targetIndex];
+    // 获取最终抽中的怪物规格
+    const EnemySpec& spec = availableEnemies[targetIndex];
 
     // 奖励箱作为“魔丸”变体的概率（可调）
-    static constexpr double kCrateAsMowanChance = 1.00; // 20%
+    // 奖励箱的概率可以随分数等级降低，减少玩家在后期获得强化频率
+    // 例如：等级 0 时 100%，等级 3 时 40%
 
+    double kCrateAsMowanChance = 0.3 - std::min(0.15, scoreLevel * 0.05); // 20%
     // —— 位置与体型 ——
     const QRectF& bounds = m_gameMap->bounds();
     qreal enemyWidth  = spec.body.width();
@@ -280,11 +396,9 @@ void GameWorldItem::spawnEnemy()
 
     // —— 根据类型创建（光环怪用 Aura 子类）——
     std::unique_ptr<Enemy> enemy;
-    if(spec.kind == EnemyKind::Mowan&&QRandomGenerator::global()->generateDouble()<kCrateAsMowanChance) {
+    if(spec.kind == EnemyKind::Mowan && QRandomGenerator::global()->generateDouble() < kCrateAsMowanChance) {
         const qreal crateSpeed=spec.speed;
-
         const int crateHp=1;
-
         const int rewardPts=20;
 
         enemy = std::make_unique<RewardCrate>(
@@ -292,37 +406,36 @@ void GameWorldItem::spawnEnemy()
             enemyWidth, enemyHeight,
             m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
             crateSpeed, crateHp, rewardPts,
-            /*沿用当前 spec 外观信息，保持同一波次的风格一致*/
             spec.kind,
             spec.animationFrames
-       );
+            );
 
     }else if (spec.kind == EnemyKind::Penguin) {
         enemy = std::make_unique<DefenseAuraEnemy>(
-                spawnX, spawnY, enemyWidth, enemyHeight,
-                m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
-                spec.speed, spec.hp,
-                spec.auraRadius, spec.auraDefenceAdd,
-                spec.kind,
-                spec.animationFrames
-        );
+            spawnX, spawnY, enemyWidth, enemyHeight,
+            m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
+            spec.speed, spec.hp,
+            spec.auraRadius, spec.auraDefenceAdd,
+            spec.kind,
+            spec.animationFrames
+            );
     } else if (spec.kind == EnemyKind::Xiaoyan) {
         enemy = std::make_unique<SpeedAuraEnemy>(
-                spawnX, spawnY, enemyWidth, enemyHeight,
-                m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
-                spec.speed, spec.hp,
-                spec.auraRadius, spec.auraSpeedMult,
-                spec.kind,
-                spec.animationFrames
-        );
+            spawnX, spawnY, enemyWidth, enemyHeight,
+            m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
+            spec.speed, spec.hp,
+            spec.auraRadius, spec.auraSpeedMult,
+            spec.kind,
+            spec.animationFrames
+            );
     } else {
         enemy = std::make_unique<Enemy>(
-                spawnX, spawnY, enemyWidth, enemyHeight,
-                m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
-                spec.speed, spec.hp,
-                spec.kind,
-                spec.animationFrames
-        );
+            spawnX, spawnY, enemyWidth, enemyHeight,
+            m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
+            spec.speed, spec.hp,
+            spec.kind,
+            spec.animationFrames
+            );
     }
 
     // —— 精英/BOSS 属性 ——
@@ -340,52 +453,53 @@ void GameWorldItem::spawnEnemy()
     };
 
     switch (spec.kind) {
-        case EnemyKind::Mowan:      // 魔丸（贴图留白相对多 → 命中框更紧）
-            setCenteredHitRect(0.48, 0.48);
-            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
-                playSpawnSound(spec.spawnSound);
-            }
-            break;
-        case EnemyKind::Kobe:       // 牢大：头肩装饰多，适度收紧
-            setCenteredHitRect(0.70, 0.70);
-            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
-                playSpawnSound(spec.spawnSound);
-            }
-            break;
-        case EnemyKind::Wujing:     // 吴京（彩蛋）：一般收紧即可
-            setCenteredHitRect(0.50, 0.50);
-            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
-                playSpawnSound(spec.spawnSound);
-            }
-            break;
-        case EnemyKind::Penguin:    // 企鹅（防御光环）：留白适中
-            setCenteredHitRect(0.40, 0.40);
-            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
-                playSpawnSound(spec.spawnSound);
-            }
-            break;
-        case EnemyKind::Xiaoyan:    // 小燕（速度光环）：留白适中
-            setCenteredHitRect(0.40, 0.40);
-            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
-                playSpawnSound(spec.spawnSound);
-            }
-            break;
-        case EnemyKind::Songhao:    // 宋浩（彩蛋）：一般收紧
-            setCenteredHitRect(0.40, 0.40);
-            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
-                playSpawnSound(spec.spawnSound);
-            }
-            break;
-        case EnemyKind::NJUboss:    // BOSS 体型大：略紧但不苛刻
-            setCenteredHitRect(0.68, 0.68);
-            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
-                playSpawnSound(spec.spawnSound);
-            }
-            break;
-        default:
-            setCenteredHitRect(0.75, 0.75); // 兜底
-            break;
+    case EnemyKind::Mowan:      // 魔丸（贴图留白相对多 → 命中框更紧）
+        setCenteredHitRect(0.48, 0.48);
+        if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+            playSpawnSound(spec.spawnSound);
+        }
+        break;
+    case EnemyKind::Kobe:       // 牢大：头肩装饰多，适度收紧
+        setCenteredHitRect(0.70, 0.70);
+        if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+            playSpawnSound(spec.spawnSound);
+        }
+        break;
+    case EnemyKind::Wujing:     // 吴京（彩蛋）：一般收紧即可
+        setCenteredHitRect(0.50, 0.50);
+        if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+            playSpawnSound(spec.spawnSound);
+        }
+        break;
+    case EnemyKind::Penguin:    // 企鹅（防御光环）：留白适中
+        setCenteredHitRect(0.40, 0.40);
+        if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+            playSpawnSound(spec.spawnSound);
+        }
+        break;
+    case EnemyKind::Xiaoyan:    // 小燕（速度光环）：留白适中
+        setCenteredHitRect(0.40, 0.40);
+        if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+            playSpawnSound(spec.spawnSound);
+        }
+        break;
+    case EnemyKind::Songhao:    // 宋浩（彩蛋）：一般收紧
+        setCenteredHitRect(0.40, 0.40);
+        if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+            playSpawnSound(spec.spawnSound);
+        }
+        break;
+    case EnemyKind::NJUboss:    // BOSS 体型大：略紧但不苛刻
+        setCenteredHitRect(0.68, 0.68);
+        if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+            playSpawnSound(spec.spawnSound);
+        }
+        break;
+    default:
+        setCenteredHitRect(0.75, 0.75); // 兜底
+        break;
     }
+
     // ====== ★ 改动结束 ======
 
     // 加入管理器
@@ -429,6 +543,23 @@ void GameWorldItem::updatePlayerDirection()
 void GameWorldItem::playerShoot(){
     if (!m_player) return;
 
+    // const QPointF playerPos = m_player->getPosition();
+    // const qreal bulletSize   = 80;
+    // const qreal bulletSpeed  = 600;
+    // const QPointF bulletDir(0, -1);
+    // const int bulletDamage   = 1;
+    //
+    // auto bullet = std::make_unique<Bullet>(
+    //         playerPos.x(), playerPos.y(),
+    //         bulletSize, bulletSize,
+    //         m_entityManager->map(),
+    //         m_player->getDeltaTime(),
+    //         bulletSpeed,
+    //         bulletDir,
+    //         bulletDamage
+    // );
+    // m_entityManager->addBullet(std::move(bullet));
+
     const QPointF playerPos = m_player->getPosition();
     const qreal bulletSize = 80;
     const qreal bulletSpeed  = 600;
@@ -458,7 +589,7 @@ void GameWorldItem::playerShoot(){
             bulletSpeed,
             makeDir(a),
             dmg
-        );
+            );
         m_entityManager->addBullet(std::move(b));
     }
 }
@@ -499,9 +630,9 @@ void GameWorldItem::onGameOver() {
     titleText->setPos(
         boundingRect().center().x() - titleRect.width() / 2,
         startY
-    );
+        );
     scoreText->setPos(
         boundingRect().center().x() - scoreRect.width() / 2,
         startY + titleRect.height() + 20
-    );
+        );
 }

@@ -23,6 +23,18 @@ void EntityManager::grantReward(int amount) {
     }
 }
 
+bool EntityManager::hasBoss() const
+{
+    // 遍历所有敌人
+    for (const auto& enemy : enemies) {
+        // 检查敌人是否存在且是否被标记为 BOSS
+        if (enemy && enemy->objectName()=="nju(BOSS)") {
+            return true; // 发现 BOSS
+        }
+    }
+    return false; // 遍历结束，未发现 BOSS
+}
+
 Player* EntityManager::addPlayer(std::unique_ptr<Player> p) {
     Player* raw = p.get();
     players.emplace_back(std::move(p));

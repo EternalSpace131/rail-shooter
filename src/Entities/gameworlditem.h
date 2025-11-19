@@ -6,7 +6,7 @@
 #include <memory> // for std::unique_ptr
 #include <QFont>
 #include "Manager/EntityManager.h"
-#include <random>
+#include<random>
 #include <QSoundEffect>
 
 // 前向声明 (Forward declare)
@@ -92,6 +92,10 @@ private:
     //播放音效
     void playSpawnSound(const QString& soundPath);
 
+
+    //boss状态
+    int m_lastBossScore = 0; // 上次生成 BOSS 时的分数
+    bool m_isBossOnScreen = false; // BOSS 是否在场上
 };
 
 #endif // GAMEWORLDITEM_H
