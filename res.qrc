@@ -52,5 +52,12 @@
         <file>assets/images/brochureButton/songhao.png</file>
         <file>assets/images/brochureButton/wujing.png</file>
         <file>assets/images/brochureButton/xiaoyan.png</file>
+        <file>assets/sounds/Music/bgm.wav</file>
+        <file>assets/sounds/Music/NeZha.wav</file>
+        <file>assets/sounds/Music/nju.wav</file>
+        <file>assets/sounds/Music/songhao.wav</file>
+        <file>assets/sounds/Music/wujing.wav</file>
+        <file>assets/sounds/Music/xiaoyan.wav</file>
+        <file>assets/sounds/Music/manba out.wav</file>
     </qresource>
 </RCC>

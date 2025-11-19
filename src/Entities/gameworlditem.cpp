@@ -225,8 +225,27 @@ void GameWorldItem::gameTick()
     update();
 }
 
+void GameWorldItem::playSpawnSound(const QString& soundPath)
+{
+    if (soundPath.isEmpty())
+        return;
+
+    QSoundEffect* effect = new QSoundEffect(this);
+    effect->setSource(QUrl(soundPath));
+    effect->setVolume(0.8f);
+    effect->play();
+
+    connect(effect, &QSoundEffect::playingChanged, effect, [effect]() {
+        if (!effect->isPlaying())
+            effect->deleteLater();
+    });
+}
+
 void GameWorldItem::spawnEnemy()
 {
+    //播放出场音乐的概率
+    double playMusic = 0.1;
+
     // 敌人字典（含名字、速度、体型、是否光环等）
     auto enemyBook = getEnemyBook();
     if (enemyBook.empty()) return;
@@ -235,7 +254,7 @@ void GameWorldItem::spawnEnemy()
     int totalWeight = 0;
     QVector<int> weightCumulative;
     for (const auto& spec : enemyBook) {
-        totalWeight += spec.wight;     // 注意：字段名是 wight
+        totalWeight += spec.weight;
         weightCumulative.append(totalWeight);
     }
     int randomValue = QRandomGenerator::global()->bounded(totalWeight);
@@ -323,24 +342,45 @@ void GameWorldItem::spawnEnemy()
     switch (spec.kind) {
         case EnemyKind::Mowan:      // 魔丸（贴图留白相对多 → 命中框更紧）
             setCenteredHitRect(0.48, 0.48);
+            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+                playSpawnSound(spec.spawnSound);
+            }
             break;
         case EnemyKind::Kobe:       // 牢大：头肩装饰多，适度收紧
             setCenteredHitRect(0.70, 0.70);
+            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+                playSpawnSound(spec.spawnSound);
+            }
             break;
         case EnemyKind::Wujing:     // 吴京（彩蛋）：一般收紧即可
             setCenteredHitRect(0.50, 0.50);
+            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+                playSpawnSound(spec.spawnSound);
+            }
             break;
         case EnemyKind::Penguin:    // 企鹅（防御光环）：留白适中
             setCenteredHitRect(0.40, 0.40);
+            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+                playSpawnSound(spec.spawnSound);
+            }
             break;
         case EnemyKind::Xiaoyan:    // 小燕（速度光环）：留白适中
             setCenteredHitRect(0.40, 0.40);
+            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+                playSpawnSound(spec.spawnSound);
+            }
             break;
         case EnemyKind::Songhao:    // 宋浩（彩蛋）：一般收紧
             setCenteredHitRect(0.40, 0.40);
+            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+                playSpawnSound(spec.spawnSound);
+            }
             break;
         case EnemyKind::NJUboss:    // BOSS 体型大：略紧但不苛刻
             setCenteredHitRect(0.68, 0.68);
+            if (!spec.spawnSound.isEmpty() && QRandomGenerator::global()->generateDouble() < playMusic){
+                playSpawnSound(spec.spawnSound);
+            }
             break;
         default:
             setCenteredHitRect(0.75, 0.75); // 兜底
@@ -388,23 +428,6 @@ void GameWorldItem::updatePlayerDirection()
 
 void GameWorldItem::playerShoot(){
     if (!m_player) return;
-
-    // const QPointF playerPos = m_player->getPosition();
-    // const qreal bulletSize   = 80;
-    // const qreal bulletSpeed  = 600;
-    // const QPointF bulletDir(0, -1);
-    // const int bulletDamage   = 1;
-    //
-    // auto bullet = std::make_unique<Bullet>(
-    //         playerPos.x(), playerPos.y(),
-    //         bulletSize, bulletSize,
-    //         m_entityManager->map(),
-    //         m_player->getDeltaTime(),
-    //         bulletSpeed,
-    //         bulletDir,
-    //         bulletDamage
-    // );
-    // m_entityManager->addBullet(std::move(bullet));
 
     const QPointF playerPos = m_player->getPosition();
     const qreal bulletSize = 80;

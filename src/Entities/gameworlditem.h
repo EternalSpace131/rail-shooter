@@ -6,7 +6,8 @@
 #include <memory> // for std::unique_ptr
 #include <QFont>
 #include "Manager/EntityManager.h"
-#include<random>
+#include <random>
+#include <QSoundEffect>
 
 // 前向声明 (Forward declare)
 // 我们不需要在这里 #include 它们的 .h 文件，可以加快编译速度
@@ -87,6 +88,10 @@ private:
     bool m_moveRight;
     int m_enemySpawnCounter;
     int m_shootCooldownCounter;
+
+    //播放音效
+    void playSpawnSound(const QString& soundPath);
+
 };
 
 #endif // GAMEWORLDITEM_H

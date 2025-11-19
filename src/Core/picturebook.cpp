@@ -113,4 +113,16 @@ picturebook::picturebook(QWidget *parent)
         BI->show();
     });
 
+    //进入nju介绍
+    MyPushButton *njuBtn = new MyPushButton(":/assets/images/brochureButton/nju.png");
+    njuBtn->setParent(this);
+    njuBtn->setGeometry(100,400,100,100);
+
+    connect(njuBtn,&QPushButton::clicked,[=](){
+        this->hide();
+        QString s = ":/assets/images/brochureImg/nju.png";
+        brochureIntro *BI = new brochureIntro;
+        BI->getPicture(s);
+        BI->show();
+    });
 }

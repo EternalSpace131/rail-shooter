@@ -29,11 +29,11 @@ struct EnemySpec {
     // 动画资源路径
     QStringList animationFrames;
 
-    //权重
-    int wight = 1;
-
     //分数
     int score;
+
+    //出场音效
+    QString spawnSound;
 };
 
 std::vector<EnemySpec> getEnemyBook();
