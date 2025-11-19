@@ -20,6 +20,8 @@ public:
     // 供敌人子类调用（比如奖励箱）
     void grantReward(int amount);
 
+    bool hasBoss() const; //场上是否拥有boss
+
     //分数管理接口
     void addScore(int score);
     int getTotalScore() const;
