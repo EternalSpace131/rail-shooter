@@ -189,11 +189,39 @@ void GameWorldItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *opt
     painter->setPen(QColor(255, 255, 255));
     painter->drawText(QPointF(m_gameMap->bounds().width()/2 - 100, 30), scoreText);
     painter->restore();
+
+    //绘制能量条
+    painter->save();
+    const qreal barW=220;
+    const qreal barH=8;
+    const qreal x=20;
+    const qreal y=56;//在分数下方一点
+    QRectF back(x,y,barW,barH);
+    painter->setPen(QColor(255, 255, 255,140));
+    painter->setBrush(QColor(0,0,0,100));
+    painter->drawRect(back);
+
+    //进度
+    qreal ratio=qreal(m_energy)/qreal(m_energyMax);
+    ratio=std::clamp(ratio,0.0,1.0);
+    QRectF fill(x+1,y+1,(barW-2)*ratio,barH-2);
+    painter->setBrush(QColor(255,214,0,220));
+    painter->setPen(Qt::NoPen);
+    painter->drawRect(fill);
+
+    QFont f; f.setFamily(QStringLiteral("Microsoft YaHei")); f.setPointSize(9); f.setBold(true);
+    painter->setFont(f);
+    QString et = canCastUltimate() ? QStringLiteral("能量：满 (E)")
+                                   : QStringLiteral("能量：%1/%2").arg(m_energy).arg(m_energyMax);
+    painter->setPen(QColor(0,0,0));            painter->drawText(QPointF(x+6, y+barH-1), et);
+    painter->setPen(QColor(255,255,255,230));  painter->drawText(QPointF(x+5, y+barH-2), et);
+    painter->restore();
 }
 
 void GameWorldItem::gameTick()
 {
     if (!m_player) return;
+    updateEnergyFromScore();
 
     m_entityManager->tickAll();
 
@@ -511,6 +539,12 @@ void GameWorldItem::spawnEnemy()
 void GameWorldItem::keyPressEvent(QKeyEvent *event)
 {
     if (event->isAutoRepeat()) return;
+    if(event->key()==Qt::Key_E) {
+        if(canCastUltimate()) {
+            castUltimate();
+            return;
+        }
+    }
     if (event->key() == Qt::Key_A || event->key() == Qt::Key_Left) {
         m_moveLeft = true;
     } else if (event->key() == Qt::Key_D || event->key() == Qt::Key_Right) {
@@ -638,3 +672,56 @@ void GameWorldItem::onGameOver() {
         startY + titleRect.height() + 20
         );
 }
+
+bool GameWorldItem::canCastUltimate() const {
+    return m_energy>=m_energyMax;
+}
+
+void GameWorldItem::updateEnergyFromScore() {
+    const int cur=m_entityManager->getTotalScore();
+    const int delta=cur-m_prevScore;
+    if (delta>0) {
+        m_energy=std::min(m_energyMax,m_energy+delta*m_energyPerPoint);
+        if (m_energy==m_energyMax) {
+            showUpgradeToast(QStringLiteral("能量已满，按 E 释放！"));
+        }
+    }
+    m_prevScore=cur;
+}
+
+void GameWorldItem::castUltimate() {
+    if(!m_player) {
+        return;
+    }
+    m_energy=0;
+
+    const QPointF playerPos = m_player->getPosition();
+    const qreal bulletSize = 80;
+    const qreal bulletSpeed = 900;
+    const int dmg=std::max(5,m_bulletDamage*5);
+
+    auto makeDir = [](qreal deg) {
+        const qreal rad = qDegreesToRadians(deg);
+        return QPointF(std::sin(rad), -std::cos(rad));
+    };
+
+    const int N=36;
+    const qreal step = 360.0/N;
+    for(int i=0;i<N;i++) {
+        qreal ang=i*step;
+        auto b = std::make_unique<Bullet>(
+            playerPos.x(), playerPos.y(),
+            bulletSize, bulletSize,
+            m_entityManager->map(),
+            m_player->getDeltaTime(),
+            bulletSpeed,
+            makeDir(ang),
+            dmg
+            );
+        m_entityManager->addBullet(std::move(b));
+    }
+    showUpgradeToast(QStringLiteral("终极！辐射清屏"));
+}
+
+
+

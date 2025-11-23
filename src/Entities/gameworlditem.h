@@ -69,6 +69,17 @@ private:
 
     void updateTimedUpgrades(int deltaMs);
 
+    //===== 能量条 & 大招 =====
+    int m_energy=0; //当前能量
+    int m_energyMax=100; //满槽阈值
+    int m_energyPerPoint=1; //每1分数点转化的能量
+    int m_prevScore=0;//上一帧分数
+
+
+    void updateEnergyFromScore();
+    bool canCastUltimate() const;
+    void castUltimate();
+
     int m_fireRate;            // 发射间隔（毫秒，控制自动发射频率，默认500ms/发）
     int m_currentCooldown;           // 当前剩余冷却时间
 
