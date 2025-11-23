@@ -26,7 +26,7 @@ GameWorldItem::GameWorldItem(qreal mapWidth, qreal mapHeight, QGraphicsItem* par
     m_moveRight(false),
     m_enemySpawnCounter(0),
     m_shootCooldownCounter(0),
-    m_fireRate(500),
+    m_fireRate(450),
     m_currentCooldown(0)
 {
     // --- 1. 创建你的 GameMap ---
@@ -372,6 +372,10 @@ void GameWorldItem::spawnEnemy()
     // 获取最终抽中的怪物规格
     const EnemySpec& spec = availableEnemies[targetIndex];
 
+    const double tt=std::clamp(m_entityManager->getTotalScore()/1200.0,0.0,1.0);
+    const double speedScale=0.80+0.40*tt;
+    const double hpScale=0.70+0.60*tt;
+
     // 奖励箱作为“魔丸”变体的概率（可调）
     // 奖励箱的概率可以随分数等级降低，减少玩家在后期获得强化频率
     // 例如：等级 0 时 100%，等级 3 时 40%
@@ -388,10 +392,12 @@ void GameWorldItem::spawnEnemy()
     qreal spawnX = minX + (QRandomGenerator::global()->generateDouble() * rangeX);
     qreal spawnY = bounds.top() - enemyHeight / 2.0;
 
+    const bool forceByPity=(m_crateMissStreak>=6);
+
     // —— 根据类型创建（光环怪用 Aura 子类）——
     std::unique_ptr<Enemy> enemy;
-    if(spec.kind == EnemyKind::Mowan && QRandomGenerator::global()->generateDouble() < kCrateAsMowanChance) {
-        const qreal crateSpeed=spec.speed;
+    if(spec.kind == EnemyKind::Mowan && (forceByPity||QRandomGenerator::global()->generateDouble() < kCrateAsMowanChance)) {
+        const qreal crateSpeed=spec.speed*speedScale;
         const int crateHp=1;
         const int rewardPts=20;
 
@@ -403,6 +409,7 @@ void GameWorldItem::spawnEnemy()
             spec.kind,
             spec.animationFrames
             );
+        m_crateMissStreak=0;
 
     }else if (spec.kind == EnemyKind::Penguin) {
         enemy = std::make_unique<DefenseAuraEnemy>(
@@ -426,10 +433,11 @@ void GameWorldItem::spawnEnemy()
         enemy = std::make_unique<Enemy>(
             spawnX, spawnY, enemyWidth, enemyHeight,
             m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
-            spec.speed, spec.hp,
+            spec.speed*speedScale, spec.hp*hpScale,
             spec.kind,
             spec.animationFrames
             );
+        ++m_crateMissStreak;
     }
 
     // —— 精英/BOSS 属性 ——

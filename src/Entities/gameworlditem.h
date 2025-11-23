@@ -63,6 +63,7 @@ private:
     int   m_bulletDamage = 1;        // 子弹基础伤害，默认1
     int   m_spreadLevel  = 0;// 散射等级（0=直射；1=3发；2=5发…）
     int   m_spreadTimeLeftMs=0;
+    int   m_crateMissStreak=0;
 
     std::mt19937 m_rng{std::random_device{}()}; // 用于随机选强化
 
