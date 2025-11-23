@@ -228,16 +228,9 @@ void GameWorldItem::gameTick()
     const int currentScore = m_entityManager->getTotalScore();
     const bool isBossScorePoint = (currentScore > 0 && currentScore % 1000 <= 90);
 
-    if (m_isBossOnScreen || isBossScorePoint) {
+    if (m_isBossOnScreen) {
         // 如果 BOSS 在场或即将生成 BOSS，则重置计时器，暂停小怪生成
         m_enemySpawnCounter = 0;
-
-        // 如果是 BOSS 分数点且 BOSS 不在场，强制刷 BOSS
-        if (isBossScorePoint && !m_isBossOnScreen && currentScore > m_lastBossScore) {
-            spawnEnemy(); // 立即尝试生成 BOSS
-            m_lastBossScore = currentScore;
-        }
-
     } else {
         // 正常刷小怪计时
         m_enemySpawnCounter += DEFAULT_DELTA_TIME_MS;
@@ -287,7 +280,8 @@ void GameWorldItem::spawnEnemy()
     const bool isBossScorePoint = (currentScore > 900 && currentScore % 1000 <= 90 );
 
     // 只有当：是BOSS分数点 AND BOSS当前不在场 AND 这个分数的BOSS还没刷过
-    if (isBossScorePoint && !m_isBossOnScreen && currentScore > m_lastBossScore) {
+    static const int kBossStep = 1000;
+    if (!m_isBossOnScreen && currentScore >= m_lastBossScore+kBossStep) {
 
         // 1. 在字典中查找 NJUboss 的数据
         const EnemySpec* bossSpecPtr = nullptr;
@@ -333,7 +327,7 @@ void GameWorldItem::spawnEnemy()
 
             // 更新状态：BOSS 已在场，记录本次分数
             m_isBossOnScreen = true;
-            m_lastBossScore = currentScore;
+            m_lastBossScore += kBossStep;
 
             return;
         }
