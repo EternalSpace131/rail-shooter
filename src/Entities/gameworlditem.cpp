@@ -26,7 +26,7 @@ GameWorldItem::GameWorldItem(qreal mapWidth, qreal mapHeight, QGraphicsItem* par
     m_moveRight(false),
     m_enemySpawnCounter(0),
     m_shootCooldownCounter(0),
-    m_fireRate(500),
+    m_fireRate(450),
     m_currentCooldown(0)
 {
     // --- 1. 创建你的 GameMap ---
@@ -189,11 +189,39 @@ void GameWorldItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *opt
     painter->setPen(QColor(255, 255, 255));
     painter->drawText(QPointF(m_gameMap->bounds().width()/2 - 100, 30), scoreText);
     painter->restore();
+
+    //绘制能量条
+    painter->save();
+    const qreal barW=220;
+    const qreal barH=8;
+    const qreal x=20;
+    const qreal y=56;//在分数下方一点
+    QRectF back(x,y,barW,barH);
+    painter->setPen(QColor(255, 255, 255,140));
+    painter->setBrush(QColor(0,0,0,100));
+    painter->drawRect(back);
+
+    //进度
+    qreal ratio=qreal(m_energy)/qreal(m_energyMax);
+    ratio=std::clamp(ratio,0.0,1.0);
+    QRectF fill(x+1,y+1,(barW-2)*ratio,barH-2);
+    painter->setBrush(QColor(255,214,0,220));
+    painter->setPen(Qt::NoPen);
+    painter->drawRect(fill);
+
+    QFont f; f.setFamily(QStringLiteral("Microsoft YaHei")); f.setPointSize(9); f.setBold(true);
+    painter->setFont(f);
+    QString et = canCastUltimate() ? QStringLiteral("能量：满 (E)")
+                                   : QStringLiteral("能量：%1/%2").arg(m_energy).arg(m_energyMax);
+    painter->setPen(QColor(0,0,0));            painter->drawText(QPointF(x+6, y+barH-1), et);
+    painter->setPen(QColor(255,255,255,230));  painter->drawText(QPointF(x+5, y+barH-2), et);
+    painter->restore();
 }
 
 void GameWorldItem::gameTick()
 {
     if (!m_player) return;
+    updateEnergyFromScore();
 
     m_entityManager->tickAll();
 
@@ -228,16 +256,9 @@ void GameWorldItem::gameTick()
     const int currentScore = m_entityManager->getTotalScore();
     const bool isBossScorePoint = (currentScore > 0 && currentScore % 1000 <= 90);
 
-    if (m_isBossOnScreen || isBossScorePoint) {
+    if (m_isBossOnScreen) {
         // 如果 BOSS 在场或即将生成 BOSS，则重置计时器，暂停小怪生成
         m_enemySpawnCounter = 0;
-
-        // 如果是 BOSS 分数点且 BOSS 不在场，强制刷 BOSS
-        if (isBossScorePoint && !m_isBossOnScreen && currentScore > m_lastBossScore) {
-            spawnEnemy(); // 立即尝试生成 BOSS
-            m_lastBossScore = currentScore;
-        }
-
     } else {
         // 正常刷小怪计时
         m_enemySpawnCounter += DEFAULT_DELTA_TIME_MS;
@@ -287,7 +308,8 @@ void GameWorldItem::spawnEnemy()
     const bool isBossScorePoint = (currentScore > 900 && currentScore % 1000 <= 90 );
 
     // 只有当：是BOSS分数点 AND BOSS当前不在场 AND 这个分数的BOSS还没刷过
-    if (isBossScorePoint && !m_isBossOnScreen && currentScore > m_lastBossScore) {
+    static const int kBossStep = 1000;
+    if (!m_isBossOnScreen && currentScore >= m_lastBossScore+kBossStep) {
 
         // 1. 在字典中查找 NJUboss 的数据
         const EnemySpec* bossSpecPtr = nullptr;
@@ -333,7 +355,7 @@ void GameWorldItem::spawnEnemy()
 
             // 更新状态：BOSS 已在场，记录本次分数
             m_isBossOnScreen = true;
-            m_lastBossScore = currentScore;
+            m_lastBossScore += kBossStep;
 
             return;
         }
@@ -378,6 +400,10 @@ void GameWorldItem::spawnEnemy()
     // 获取最终抽中的怪物规格
     const EnemySpec& spec = availableEnemies[targetIndex];
 
+    const double tt=std::clamp(m_entityManager->getTotalScore()/1200.0,0.0,1.0);
+    const double speedScale=0.80+0.40*tt;
+    const double hpScale=0.70+0.60*tt;
+
     // 奖励箱作为“魔丸”变体的概率（可调）
     // 奖励箱的概率可以随分数等级降低，减少玩家在后期获得强化频率
     // 例如：等级 0 时 100%，等级 3 时 40%
@@ -394,10 +420,12 @@ void GameWorldItem::spawnEnemy()
     qreal spawnX = minX + (QRandomGenerator::global()->generateDouble() * rangeX);
     qreal spawnY = bounds.top() - enemyHeight / 2.0;
 
+    const bool forceByPity=(m_crateMissStreak>=6);
+
     // —— 根据类型创建（光环怪用 Aura 子类）——
     std::unique_ptr<Enemy> enemy;
-    if(spec.kind == EnemyKind::Mowan && QRandomGenerator::global()->generateDouble() < kCrateAsMowanChance) {
-        const qreal crateSpeed=spec.speed;
+    if(spec.kind == EnemyKind::Mowan && (forceByPity||QRandomGenerator::global()->generateDouble() < kCrateAsMowanChance)) {
+        const qreal crateSpeed=spec.speed*speedScale;
         const int crateHp=1;
         const int rewardPts=20;
 
@@ -409,6 +437,7 @@ void GameWorldItem::spawnEnemy()
             spec.kind,
             spec.animationFrames
             );
+        m_crateMissStreak=0;
 
     }else if (spec.kind == EnemyKind::Penguin) {
         enemy = std::make_unique<DefenseAuraEnemy>(
@@ -432,10 +461,11 @@ void GameWorldItem::spawnEnemy()
         enemy = std::make_unique<Enemy>(
             spawnX, spawnY, enemyWidth, enemyHeight,
             m_gameMap.get(), DEFAULT_DELTA_TIME_MS,
-            spec.speed, spec.hp,
+            spec.speed*speedScale, spec.hp*hpScale,
             spec.kind,
             spec.animationFrames
             );
+        ++m_crateMissStreak;
     }
 
     // —— 精英/BOSS 属性 ——
@@ -509,6 +539,12 @@ void GameWorldItem::spawnEnemy()
 void GameWorldItem::keyPressEvent(QKeyEvent *event)
 {
     if (event->isAutoRepeat()) return;
+    if(event->key()==Qt::Key_E) {
+        if(canCastUltimate()) {
+            castUltimate();
+            return;
+        }
+    }
     if (event->key() == Qt::Key_A || event->key() == Qt::Key_Left) {
         m_moveLeft = true;
     } else if (event->key() == Qt::Key_D || event->key() == Qt::Key_Right) {
@@ -636,3 +672,56 @@ void GameWorldItem::onGameOver() {
         startY + titleRect.height() + 20
         );
 }
+
+bool GameWorldItem::canCastUltimate() const {
+    return m_energy>=m_energyMax;
+}
+
+void GameWorldItem::updateEnergyFromScore() {
+    const int cur=m_entityManager->getTotalScore();
+    const int delta=cur-m_prevScore;
+    if (delta>0) {
+        m_energy=std::min(m_energyMax,m_energy+delta*m_energyPerPoint);
+        if (m_energy==m_energyMax) {
+            showUpgradeToast(QStringLiteral("能量已满，按 E 释放！"));
+        }
+    }
+    m_prevScore=cur;
+}
+
+void GameWorldItem::castUltimate() {
+    if(!m_player) {
+        return;
+    }
+    m_energy=0;
+
+    const QPointF playerPos = m_player->getPosition();
+    const qreal bulletSize = 80;
+    const qreal bulletSpeed = 900;
+    const int dmg=std::max(5,m_bulletDamage*5);
+
+    auto makeDir = [](qreal deg) {
+        const qreal rad = qDegreesToRadians(deg);
+        return QPointF(std::sin(rad), -std::cos(rad));
+    };
+
+    const int N=36;
+    const qreal step = 360.0/N;
+    for(int i=0;i<N;i++) {
+        qreal ang=i*step;
+        auto b = std::make_unique<Bullet>(
+            playerPos.x(), playerPos.y(),
+            bulletSize, bulletSize,
+            m_entityManager->map(),
+            m_player->getDeltaTime(),
+            bulletSpeed,
+            makeDir(ang),
+            dmg
+            );
+        m_entityManager->addBullet(std::move(b));
+    }
+    showUpgradeToast(QStringLiteral("终极！辐射清屏"));
+}
+
+
+

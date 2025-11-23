@@ -63,10 +63,22 @@ private:
     int   m_bulletDamage = 1;        // 子弹基础伤害，默认1
     int   m_spreadLevel  = 0;// 散射等级（0=直射；1=3发；2=5发…）
     int   m_spreadTimeLeftMs=0;
+    int   m_crateMissStreak=0;
 
     std::mt19937 m_rng{std::random_device{}()}; // 用于随机选强化
 
     void updateTimedUpgrades(int deltaMs);
+
+    //===== 能量条 & 大招 =====
+    int m_energy=0; //当前能量
+    int m_energyMax=100; //满槽阈值
+    int m_energyPerPoint=1; //每1分数点转化的能量
+    int m_prevScore=0;//上一帧分数
+
+
+    void updateEnergyFromScore();
+    bool canCastUltimate() const;
+    void castUltimate();
 
     int m_fireRate;            // 发射间隔（毫秒，控制自动发射频率，默认500ms/发）
     int m_currentCooldown;           // 当前剩余冷却时间
