@@ -94,4 +94,4 @@ rail-shooter/
 
 阅读游戏逻辑可以从 `src/Entities/gameworlditem.cpp` 开始，这里负责输入、自动射击、出怪、强化和大招。`src/Manager/EntityManager.cpp` 负责实体更新与碰撞结算，敌人的参数和动画定义在 `src/Entities/EnemySpec.cpp` 中。
 
-本项目由课程小组共同完成，仓库保留了开发期间的原始提交与协作记录。
+本项目由课程小组共同完成。
